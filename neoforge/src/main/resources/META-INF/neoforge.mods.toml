@@ -1,0 +1,32 @@
+modLoader = "javafml"
+loaderVersion = "[2,)"
+#issueTrackerURL = ""
+license = "GNU LGPL 3.0"
+
+[[mods]]
+modId = "quickbakcupmulti_reforged"
+version = "${version}"
+displayName = "QuickBakcupMulti-Reforged"
+authors = "SkyDynamic"
+description = '''
+A backup / restore mod, with multiple backup slots
+'''
+#logoFile = ""
+
+[[dependencies.quickbakcupmulti_reforged]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.quickbakcupmulti_reforged]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21,)"
+ordering = "NONE"
+side = "BOTH"
+
+
+[[mixins]]
+config = "quickbakcupmulti.mixins.json"

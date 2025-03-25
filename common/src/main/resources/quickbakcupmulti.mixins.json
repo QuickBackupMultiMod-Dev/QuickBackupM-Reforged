@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "io.github.skydynamic.quickbakcupmulti.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+  ],
+  "mixins": [
+    "MixinMinecraftServer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
