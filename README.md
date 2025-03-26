@@ -20,7 +20,8 @@ _✨ MC备份 / 回档模组 ✨_
 </div>
 
 > [!WARNING]  
-> v3与v2的数据库并不一致, 无法直接迁移, 并且目前仅支持`Server`侧
+> v3与v2的数据库并不一致, 无法直接迁移, 并且目前仅支持`Server`侧  
+> 数据库迁移可以使用 [这个工具](https://github.com/QuickBackupMultiMod-Dev/Qbm-DatabaseMerge/releases)
 
 > 当前Mod大版本为`v3`, 相比于`v2`, 使用了更高性能的数据库, 并且重构了项目结构与简化了代码
 > 
