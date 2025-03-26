@@ -3,7 +3,7 @@ package io.github.skydynamic.quickbakcupmulti.fabric.events;
 import io.github.skydynamic.quickbakcupmulti.fabric.QuickbakcupmultiReforgedFabric;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.ServerManager;
-import io.github.skydynamic.quickbakcupmulti.event.OnServerStopedHandler;
+import io.github.skydynamic.quickbakcupmulti.event.OnServerStoppedHandler;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
@@ -25,6 +25,6 @@ public class FabricEvents {
     }
 
     private static void onServerStoped(MinecraftServer server) {
-        OnServerStopedHandler.handle();
+        OnServerStoppedHandler.handle();
     }
 }

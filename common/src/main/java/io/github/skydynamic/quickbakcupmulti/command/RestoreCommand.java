@@ -59,7 +59,6 @@ public class RestoreCommand {
         public void run() {
             ModCommand.getLogger().info("Restore thread started...");
             executor.run();
-            ModCommand.getLogger().info("Restore thread close");
         }
     }
 

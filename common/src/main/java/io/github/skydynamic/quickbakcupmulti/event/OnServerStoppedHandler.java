@@ -3,7 +3,7 @@ package io.github.skydynamic.quickbakcupmulti.event;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 
-public class OnServerStopedHandler {
+public class OnServerStoppedHandler {
     public static void handle() {
         if (QuickbakcupmultiReforged.getModContainer().isRestoringBackup()) {
             BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup());

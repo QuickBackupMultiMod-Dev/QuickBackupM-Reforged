@@ -30,3 +30,6 @@ side = "BOTH"
 
 [[mixins]]
 config = "quickbakcupmulti.mixins.json"
+
+[[mixins]]
+config = "quickbakcupmulti-neoforge.mixins.json"

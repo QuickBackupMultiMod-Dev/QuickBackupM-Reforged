@@ -47,6 +47,8 @@ dependencies {
     include("org.jetbrains.exposed:exposed-core:0.57.0")
     include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
     include("com.h2database:h2:2.2.224")
+
+    include("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
 }
 
 processResources {
