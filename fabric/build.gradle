@@ -25,7 +25,14 @@ configurations {
 dependencies {
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 
-    modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
+    Set<String> apiModules = [
+            "fabric-command-api-v2",
+            "fabric-lifecycle-events-v1",
+    ]
+
+    apiModules.forEach {
+        include(modImplementation(fabricApi.module(it, rootProject.fabric_api_version)))
+    }
 
     common(project(path: ':common:', configuration: 'namedElements')) { transitive false }
     shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
