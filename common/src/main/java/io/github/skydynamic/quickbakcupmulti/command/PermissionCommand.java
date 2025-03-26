@@ -13,6 +13,8 @@ import net.minecraft.network.chat.Component;
 
 import java.util.Collection;
 
+import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
+
 public class PermissionCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("permission")
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
@@ -25,14 +27,6 @@ public class PermissionCommand {
                             IntegerArgumentType.getInteger(it, "level")
                     ))
                 )
-            )
-        )
-        .then(Commands.literal("get")
-            .then(Commands.argument("player", GameProfileArgument.gameProfile())
-                .executes(it -> getPermission(
-                    it.getSource(),
-                    GameProfileArgument.getGameProfiles(it, "player")
-                ))
             )
         )
         .then(Commands.literal("reload")
@@ -53,21 +47,9 @@ public class PermissionCommand {
         return 1;
     }
 
-    private static int getPermission(CommandSourceStack commandSource, Collection<GameProfile> players) {
-        players.forEach(player -> commandSource.sendSystemMessage(
-            Component.literal(
-               "Player %s permission is %s".formatted(
-                   player.getName(),
-                   QuickbakcupmultiReforged.getModContainer().getPermissionManager().getPlayerPermission(player.getName()).name()
-               )
-            )
-        ));
-        return 1;
-    }
-
     private static int reloadPermission(CommandSourceStack commandSource) {
         QuickbakcupmultiReforged.getModContainer().getPermissionManager().reloadPermission();
-        commandSource.sendSystemMessage(Component.literal("Reload permission"));
+        commandSource.sendSystemMessage(Component.literal(tr("quickbackupmulti.permission.reload")));
         return 1;
     }
 }

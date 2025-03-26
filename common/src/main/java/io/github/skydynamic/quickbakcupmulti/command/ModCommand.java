@@ -1,6 +1,7 @@
 package io.github.skydynamic.quickbakcupmulti.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import io.github.skydynamic.quickbakcupmulti.command.settings.SettingCommand;
 import lombok.Getter;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -28,7 +29,6 @@ public class ModCommand {
             if (executor != null) {
                 logger.info("CmdExecutor thread started...");
                 executor.run();
-                logger.info("CmdExecutor thread close");
             } else {
                 logger.error("executor must be not null");
             }
@@ -44,6 +44,9 @@ public class ModCommand {
             .then(RestoreCommand.restoreCmd)
             .then(RestoreCommand.confirmCmd)
             .then(RestoreCommand.cancelCmd)
+            .then(SettingCommand.cmd)
+            .then(SearchCommand.cmd)
+            .then(ShowCommand.cmd)
         );
     }
 }

@@ -1,0 +1,68 @@
+{
+  "quickbackupmulti": {
+    "empty_comment": "§7Empty§r",
+    "list_empty": "§7Do not have any backups now",
+    "search": {
+      "success": "§aSearch success§r, the result: ",
+      "fail": "§4Do not have any result"
+    },
+    "lang": {
+      "failed": "§4Language do not exists",
+      "set": "§aLanguage§r has been set to: §4§l%s§r"
+    },
+    "confirm_restore": {
+      "nothing_to_confirm": "Nothing to confirm"
+    },
+    "make": {
+      "start": "§aBackup§r now...Please wait a moment",
+      "no_slot": "No available slots found, §abackup§r abort!",
+      "success": "§aBackup §rcompleted, It takes §6%s§rs",
+      "fail": "§aMake Backup failed，because: %s",
+      "fail_exists": "§aMake backup §rFailed，error msg: Slot already exists"
+    },
+    "delete": {
+      "success": "§aSuccess delete slot §6%s",
+      "fail": "§4Fail§r to delete slot §6%s"
+    },
+    "list_backup": {
+      "title": "§d[Page §b%s§d Slot Information]§r",
+      "back_page": "Last page",
+      "next_page": "Next page",
+      "page_msg": "[§b%s§r / §b%s§r]",
+      "slot": {
+        "header": "[§6#%s§r]",
+        "restore": "Click to restore to slot §6%s§r",
+        "delete": "Click to delete slot §6%s§r",
+        "show": "Click to show §6%s§r detail",
+        "total_space": "These backups total space consumed: §a%s§r"
+      }
+    },
+    "restore": {
+      "countdown": {
+        "intro": "%s execute restore backup, §cRestore§r after 10 second",
+        "text": "%s second later the world will be §crestored§r to slot §6%s§r, ",
+        "hover": "Click to ABORT restore!"
+      },
+      "abort": "§cRestore§r aborted!",
+      "fail": "§4Fail§r ro restore: slot §4NotFount§r!",
+      "confirm_hint": "Use §7/qb confirm§r to confirm §crestore§r",
+      "abort_hint": "Confirmed restore, If you want to abort, please enter §7/qb cancel§r"
+    },
+    "show": {
+      "header": "§d[Slot Information]§r",
+      "name": "§bName",
+      "desc": "§bBackup Desc",
+      "time": "§bBackup Time",
+      "back_button": "§2[Click to back]",
+      "delete_button": "§c[Click to delete]",
+      "fail": "Backup Not Found"
+    },
+    "permission": {
+      "set": "Set §g%s§r permission to §3%s",
+      "reload": "Reload permission config success"
+    },
+    "restartmode": {
+      "switch": "§aRestart mode§r switch to: §4§l%s§r"
+    }
+  }
+}

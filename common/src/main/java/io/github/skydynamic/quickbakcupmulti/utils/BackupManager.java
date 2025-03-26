@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
+
 public class BackupManager {
     private static final Logger logger = LoggerFactory.getLogger("Qbm-BackupManager");
     private static final IOFileFilter folderFilter = new NotFileFilter(new NameFileFilter(QuickbakcupmultiReforged.getModConfig().getIgnoredFolders()));
@@ -60,12 +62,12 @@ public class BackupManager {
 
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
         if (QuickbakcupmultiReforged.getStorager().storageExists(name)) {
-            commandSource.sendSystemMessage(Component.nullToEmpty("Slot already exists"));
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail_exists")));
             return;
         }
         long startTime = System.currentTimeMillis();
         try {
-            commandSource.sendSystemMessage(Component.nullToEmpty("String make backup..."));
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.start")));
             MinecraftServer server = commandSource.getServer();
             server.executeIfPossible(() -> server.saveEverything(true, true, true));
             for (ServerLevel serverLevel : server.getAllLevels()) {
@@ -84,7 +86,7 @@ public class BackupManager {
 
             long endTime = System.currentTimeMillis();
             double intervalTime = (endTime - startTime) / 1000.0;
-            commandSource.sendSystemMessage(Component.nullToEmpty("Make backup success in %ss".formatted(intervalTime)));
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
 
             // TODO: Schedule Backup
 
@@ -94,7 +96,7 @@ public class BackupManager {
             }
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
-            commandSource.sendSystemMessage(Component.nullToEmpty("Make backup failed: %s".formatted(e.toString())));
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
             try {
                 FileUtils.forceDeleteOnExit(getBackupPath().resolve(name).toFile());
             } catch (IOException ex) {

@@ -9,6 +9,8 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
+import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
+
 public class DeleteCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("delete")
         .requires(it -> PermissionManager.hasPermission(it, 2, PermissionType.HELPER))
@@ -22,9 +24,9 @@ public class DeleteCommand {
     private static int deleteBackup(CommandSourceStack commandSource, String name) {
         new ModCommand.CmdExecuteThread(() -> {
             if (BackupManager.deleteBackup(commandSource, name)) {
-                commandSource.sendSystemMessage(Component.literal("Delete Success"));
+                commandSource.sendSystemMessage(Component.literal(tr("quickbackupmulti.delete.success", name)));
             } else {
-                commandSource.sendSystemMessage(Component.literal("Delete Failed"));
+                commandSource.sendSystemMessage(Component.literal(tr("quickbackupmulti.delete.fail", name)));
             }
         });
         return 0;
