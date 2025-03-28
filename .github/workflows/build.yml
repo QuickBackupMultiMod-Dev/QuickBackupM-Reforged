@@ -47,7 +47,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: ./*/build/libs/
+          path: |
+            ./*/build/libs/
+            !./*/build/libs/*shadow*.jar
+            !./*/build/libs/*source*.jar
+            !./common/build/libs/
 
   summary:
     runs-on: ubuntu-22.04

@@ -57,10 +57,10 @@ subprojects {
 
     version = fullModVersion
     group = project.maven_group
-    archivesBaseName = project.archives_name + "-mc" + project.minecraft_version + "-$project.name"
+    archivesBaseName = project.archives_name + "-mc" + project.minecraft_version + "-$project.name".replace("${mod_id}-", "")
 
     loom {
-        accessWidenerPath = project(":common").file("src/main/resources/qbm.accesswidener")
+        accessWidenerPath = project(":${mod_id}-common").file("src/main/resources/qbm.accesswidener")
     }
 
     java {
@@ -98,7 +98,7 @@ subprojects {
         }
 
         tasks.register('copyJarsToRootLibs') {
-            if (project.name == "neoforge" || project.name == "fabric") {
+            if (project.name.contains("neoforge") || project.name.contains("fabric")) {
                 doLast {
                     def sourceLibsDir = project.projectDir.toPath().resolve("build/libs").toFile()
                     if (sourceLibsDir.exists()) {

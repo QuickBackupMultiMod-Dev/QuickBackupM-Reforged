@@ -12,6 +12,10 @@ pluginManagement {
 
 rootProject.name = 'quickbakcupmulti-reforged'
 
-include 'common'
-include 'fabric'
-include 'neoforge'
+include("${mod_id}-common")
+include("${mod_id}-fabric")
+include("${mod_id}-neoforge")
+
+project(":${mod_id}-common").setProjectDir(new File("common"))
+project(":${mod_id}-neoforge").setProjectDir(new File("neoforge"))
+project(":${mod_id}-fabric").setProjectDir(new File("fabric"))
