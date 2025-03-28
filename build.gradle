@@ -8,13 +8,8 @@ ext {
     getVersionSuffix = {
         String versionSuffix = ""
         if (System.getenv("BUILD_RELEASE") != "true") {
-            def PRE_VERSION = System.getenv("PRE_VERSION")
-            if (PRE_VERSION != null && PRE_VERSION != "" && PRE_VERSION != "null") {
-                versionSuffix += ("+pre-release." + PRE_VERSION)
-            } else {
-                String buildNumber = System.getenv("BUILD_ID")
-                versionSuffix += buildNumber != null ? ("+build." + buildNumber) : "+snapshot"
-            }
+            String buildNumber = System.getenv("BUILD_ID")
+            versionSuffix += buildNumber != null ? ("+build." + buildNumber) : "+snapshot"
         }
         return versionSuffix
     }
@@ -37,8 +32,8 @@ subprojects {
     repositories {
         mavenLocal()
         maven {
-           name "CjsahMaven"
-           url "https://server.cjsah.net:1002/maven/"
+            name "CjsahMaven"
+            url "https://server.cjsah.net:1002/maven/"
         }
     }
 
@@ -77,5 +72,49 @@ subprojects {
 
     tasks.withType(JavaCompile).configureEach {
         it.options.release = 21
+    }
+
+    beforeEvaluate {
+        tasks.register('cleanBuildLibs') {
+            doFirst {
+                def libsDir = project.projectDir.toPath().resolve("build/libs").toFile()
+                if (libsDir.exists()) {
+                    libsDir.listFiles().each { file ->
+                        file.delete()
+                    }
+                }
+            }
+        }
+
+        tasks.build.dependsOn(cleanBuildLibs)
+        tasks.remapJar.dependsOn(cleanBuildLibs)
+    }
+
+    afterEvaluate {
+        def targetLibsDir = rootProject.file("build/libs")
+
+        if (!targetLibsDir.exists()) {
+            targetLibsDir.mkdirs()
+        }
+
+        tasks.register('copyJarsToRootLibs') {
+            if (project.name == "neoforge" || project.name == "fabric") {
+                doLast {
+                    def sourceLibsDir = project.projectDir.toPath().resolve("build/libs").toFile()
+                    if (sourceLibsDir.exists()) {
+                        sourceLibsDir.listFiles().each { file ->
+                            if (file.name.endsWith('.jar')
+                                    && !file.name.contains('dev')
+                                    && !file.name.contains('source')) {
+                                ant.copy(file: file, todir: targetLibsDir)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        tasks.build.finalizedBy(copyJarsToRootLibs)
+        tasks.remapJar.finalizedBy(copyJarsToRootLibs)
     }
 }

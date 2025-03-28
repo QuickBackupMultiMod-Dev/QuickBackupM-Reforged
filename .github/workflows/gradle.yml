@@ -1,0 +1,21 @@
+name: Dev Builds
+
+on:
+  push:
+    paths:
+      - "*.gradle"
+      - "gradle.properties"
+      - "*/src/**"
+      - ".github/**"
+
+  pull_request:
+    paths:
+      - "*.gradle"
+      - "gradle.properties"
+      - "*/src/**"
+      - ".github/**"
+
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
