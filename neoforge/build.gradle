@@ -38,12 +38,12 @@ dependencies {
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
 
-    forgeRuntimeLibrary('io.github.skydynamic:incremental-storage-lib:1.1.0+SNAPSHOT')
+    forgeRuntimeLibrary('io.github.skydynamic:incremental-storage-lib:1.1.0')
     forgeRuntimeLibrary('org.jetbrains.exposed:exposed-core:0.57.0')
     forgeRuntimeLibrary('org.jetbrains.exposed:exposed-jdbc:0.57.0')
     forgeRuntimeLibrary('com.h2database:h2:2.2.224')
 
-    include("io.github.skydynamic:incremental-storage-lib:1.1.0+SNAPSHOT")
+    include("io.github.skydynamic:incremental-storage-lib:1.1.0")
     include("org.jetbrains.exposed:exposed-core:0.57.0")
     include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
     include("com.h2database:h2:2.2.224")
