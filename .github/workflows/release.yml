@@ -84,6 +84,13 @@ jobs:
           path: gradle.properties
           properties: 'archives_name mod_version minecraft_version minecraft_supported_versions'
 
+      - name: Read version-specific properties
+        id: properties_v
+        uses: christian-draeger/read-properties@1.1.1
+        with:
+          path: ${{ format('versions/{0}/gradle.properties', matrix.subproject) }}
+          properties: 'platform'
+
       - name: Fix game version
         id: game_versions
         run: |
@@ -143,13 +150,11 @@ jobs:
 
           files: ${{ steps.file_info.outputs.path }}
 
-          name: ${{ format('{0} v{1} for mc{2}', steps.properties_g.outputs.archives_name, steps.properties_g.outputs.mod_version, steps.properties_v.outputs.minecraft_version) }}
-          version: ${{ format('mc{0}-v{1}', steps.properties_v.outputs.minecraft_version, steps.properties_g.outputs.mod_version) }}
+          name: ${{ format('{0} v{1} for mc{2}-{3}', steps.properties_g.outputs.archives_name, steps.properties_g.outputs.mod_version, steps.properties_g.outputs.minecraft_version, steps.properties_v.outputs.platform) }}
+          version: ${{ format('mc{0}-v{1}-{2}', steps.properties_g.outputs.minecraft_version, steps.properties_g.outputs.mod_version, steps.properties_v.outputs.platform) }}
           version-type: release
 
-          loaders: |
-            fabric
-            neoforge
+          loaders: ${{ steps.properties_v.outputs.platform }}
           game-versions: ${{ steps.game_versions.outputs.value }}
           game-version-filter: any
 
