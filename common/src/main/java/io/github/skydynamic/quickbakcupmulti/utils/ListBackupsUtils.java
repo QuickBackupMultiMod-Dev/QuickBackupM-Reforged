@@ -1,6 +1,7 @@
 package io.github.skydynamic.quickbakcupmulti.utils;
 
 import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
+import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
@@ -15,10 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
@@ -53,7 +52,8 @@ public class ListBackupsUtils {
         MutableComponent text = Component.literal(direction);
         text.withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(direction))));
         if (page != offset && totalPage > 1) {
-            text.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/qb list " + (page + offset)))).withStyle(style -> style.withColor(ChatFormatting.AQUA));
+            text.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/qb list " + (page + offset))))
+                .withStyle(style -> style.withColor(ChatFormatting.AQUA));
         } else {
             text.withStyle(style -> style.withColor(ChatFormatting.DARK_GRAY));
         }
@@ -68,32 +68,50 @@ public class ListBackupsUtils {
         return getPageNavigationText("[->]", page, totalPage, 1);
     }
 
-    private static MutableComponent getSlotText(Map.Entry<String, StorageInfo> entry, int page, int num, long backupSizeB) throws IOException {
-        String name = entry.getKey();
+    private static MutableComponent getSlotText(StorageInfo info, int page, int num, long backupSizeB) throws IOException {
+        String name = info.getName();
         MutableComponent backText = Component.literal("§2[▷] ");
         MutableComponent deleteText = Component.literal("§c[×] ");
         MutableComponent nameText = Component.literal("§6" + truncateString(name, 8) + "§r ");
         MutableComponent resultText = Component.literal("");
-        StorageInfo result = entry.getValue();
 
-        backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore \"%s\"".formatted(name)))).withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
+        backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore \"%s\"".formatted(name))))
+            .withStyle(style -> style.withHoverEvent(
+                new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
 
-        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete %s".formatted(name)))).withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
+        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete %s".formatted(name))))
+            .withStyle(style -> style.withHoverEvent(
+                new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
-        nameText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb show %s".formatted(name)))).withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
+        nameText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb show %s".formatted(name))))
+            .withStyle(style -> style.withHoverEvent(
+                new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
 
-        String desc = result.getDesc();
+        String desc = info.getDesc();
         if (desc.isEmpty()) desc = "Empty";
         double backupSizeMB = (double) backupSizeB / FileUtils.ONE_MB;
         double backupSizeGB = (double) backupSizeB / FileUtils.ONE_GB;
         String sizeString = (backupSizeMB >= 1000) ? String.format("%.2fGB", backupSizeGB) : String.format("%.2fMB", backupSizeMB);
-        resultText.append("\n" + tr("quickbackupmulti.list_backup.slot.header", num + (5 * (page - 1))) + " ").append(nameText).append(backText).append(deleteText).append("§a" + sizeString).append(String.format(" §b%s§7: §r%s", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(result.getTimestamp()), truncateString(desc, 10)));
+        resultText.append("\n" + tr("quickbackupmulti.list_backup.slot.header", num + (5 * (page - 1))) + " ")
+            .append(nameText)
+            .append(backText)
+            .append(deleteText)
+            .append("§a" + sizeString)
+            .append(String.format(" §b%s§7: §r%s", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(info.getTimestamp()), truncateString(desc, 10)));
         return resultText;
     }
 
     public static MutableComponent list(int page) {
         long totalBackupSizeB = 0;
-        List<Map.Entry<String, StorageInfo>> backupsInfoList = BackupManager.getBackupsList().stream().map(name -> Map.entry(name, Objects.requireNonNull(QuickbakcupmultiReforged.getDatabase().getStorageInfoWithName(name)))).sorted((c1, c2) -> -Long.compare(c1.getValue().getTimestamp(), c2.getValue().getTimestamp())).collect(Collectors.toList());
+        List<StorageInfo> backupList;
+        if (!QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
+            backupList = QuickbakcupmultiReforged.getDatabase().getAllStorageInfo();
+        } else {
+            backupList = DatabaseCache.getStorageInfoCaches();
+        }
+        List<StorageInfo> backupsInfoList = backupList.stream()
+            .sorted(Comparator.comparingLong(StorageInfo::getTimestamp))
+            .toList();
         if (backupsInfoList.isEmpty() || getPageCount(backupsInfoList, page) == 0) {
             return Component.literal(tr("quickbackupmulti.list_empty"));
         }
@@ -102,14 +120,19 @@ public class ListBackupsUtils {
         MutableComponent resultText = Component.literal(tr("quickbackupmulti.list_backup.title", page));
         MutableComponent backPageText = getBackPageText(page, totalPage);
         MutableComponent nextPageText = getNextPageText(page, totalPage);
-        resultText.append("\n").append(backPageText).append("  ").append(tr("quickbackupmulti.list_backup.page_msg", page, totalPage)).append("  ").append(nextPageText);
+        resultText.append("\n")
+            .append(backPageText)
+            .append("  ")
+            .append(tr("quickbackupmulti.list_backup.page_msg", page, totalPage))
+            .append("  ")
+            .append(nextPageText);
         for (int j = 1; j <= getPageCount(backupsInfoList, page); j++) {
             try {
-                Map.Entry<String, StorageInfo> entry = backupsInfoList.get(((j - 1) + BACKUPS_PER_PAGE * (page - 1)));
-                String name = entry.getKey();
+                StorageInfo info = backupsInfoList.get(((j - 1) + BACKUPS_PER_PAGE * (page - 1)));
+                String name = info.getName();
                 long backupSizeB = getDirSize(backupPath.resolve(name).toFile());
                 totalBackupSizeB += backupSizeB;
-                resultText.append(getSlotText(entry, page, j, backupSizeB));
+                resultText.append(getSlotText(info, page, j, backupSizeB));
             } catch (IOException e) {
                 logger.error("Error while listing backups", e);
                 return Component.literal("Error while listing backups").withStyle(ChatFormatting.RED);
@@ -129,7 +152,7 @@ public class ListBackupsUtils {
                 String name = searchResultList.get(i - 1);
                 StorageInfo result = QuickbakcupmultiReforged.getDatabase().getStorageInfoWithName(name);
                 long backupSizeB = getDirSize(backupPath.resolve(name).toFile());
-                resultText.append(getSlotText(Map.entry(name, result), 1, i, backupSizeB));
+                resultText.append(getSlotText(result, 1, i, backupSizeB));
             } catch (IOException e) {
                 logger.error("Error while searching backups", e);
                 return Component.literal("Error while searching backups").withStyle(ChatFormatting.RED);
@@ -148,10 +171,21 @@ public class ListBackupsUtils {
 
             MutableComponent backText = Component.literal(tr("quickbackupmulti.show.back_button"));
             MutableComponent deleteText = Component.literal(tr("quickbackupmulti.show.delete_button"));
-            backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore \"%s\"".formatted(name)))).withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
-            deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete \"%s\"".formatted(name)))).withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.delete", name)))));
+            backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore \"%s\"".formatted(name))))
+                .withStyle(style -> style.withHoverEvent(
+                    new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
+            deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete \"%s\"".formatted(name))))
+                .withStyle(style -> style.withHoverEvent(
+                    new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
-            resultText.append("\n").append(tr("quickbackupmulti.show.name") + ": §r" + backupInfo.getName() + "\n").append(tr("quickbackupmulti.show.desc") + ": §r" + desc + "\n").append(tr("quickbackupmulti.show.time") + ": §r" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(backupInfo.getTimestamp())).append("\n").append(backText).append(" ").append(deleteText);
+            resultText.append("\n")
+                .append(tr("quickbackupmulti.show.name") + ": §r" + backupInfo.getName() + "\n")
+                .append(tr("quickbackupmulti.show.desc") + ": §r" + desc + "\n")
+                .append(tr("quickbackupmulti.show.time") + ": §r" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(backupInfo.getTimestamp()))
+                .append("\n")
+                .append(backText)
+                .append(" ")
+                .append(deleteText);
 
         } else {
             resultText = Component.literal(tr("quickbackupmulti.show.fail"));

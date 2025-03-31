@@ -2,6 +2,7 @@ package io.github.skydynamic.quickbakcupmulti.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
@@ -28,13 +29,16 @@ public class MakeCommand {
             long l = System.currentTimeMillis();
             QuickbakcupmultiReforged.logger.info("Make Backup thread started...");
             BackupManager.makeBackup(sourceStack, name, desc);
+            if (QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
+                DatabaseCache.updateStorageInfoCaches();
+            }
             QuickbakcupmultiReforged.logger.info("Make Backup thread close => {}ms", System.currentTimeMillis() - l);
         }
     }
 
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HHmmss");
 
-    public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("make")
+    public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("make")
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.HELPER))
         .executes(it -> makeSaveBackup(it.getSource(), dateFormat.format(System.currentTimeMillis()), ""))
         .then(Commands.argument("name", StringArgumentType.string())

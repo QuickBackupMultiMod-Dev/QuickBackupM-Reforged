@@ -16,7 +16,7 @@ import java.util.Collection;
 import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
 public class PermissionCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("permission")
+    public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("permission")
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
         .then(Commands.literal("set")
             .then(Commands.argument("player", GameProfileArgument.gameProfile())

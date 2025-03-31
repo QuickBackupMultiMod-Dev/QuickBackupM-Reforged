@@ -4,6 +4,7 @@ import com.mojang.datafixers.DataFixer;
 import io.github.skydynamic.increment.storage.lib.database.Database;
 import io.github.skydynamic.increment.storage.lib.util.IndexUtil;
 import io.github.skydynamic.increment.storage.lib.util.Storager;
+import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.database.DatabaseManager;
 import net.minecraft.server.MinecraftServer;
@@ -52,5 +53,8 @@ public abstract class MixinMinecraftServer extends MinecraftServer {
         QuickbakcupmultiReforged.setStorager(new Storager(QuickbakcupmultiReforged.getDatabase()));
         IndexUtil.setConfig(QuickbakcupmultiReforged.getModConfig());
         IndexUtil.setDatabase(QuickbakcupmultiReforged.getDatabase());
+        if (QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
+            DatabaseCache.updateStorageInfoCaches();
+        }
     }
 }

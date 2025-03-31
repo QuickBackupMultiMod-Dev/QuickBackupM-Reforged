@@ -97,6 +97,10 @@ public class ModConfig implements IConfig {
         config.autoRestartMode = autoRestartMode;
     }
 
+    public boolean isCacheDatabase() {
+        return config.cacheDatabase;
+    }
+
     @Override
     public String getStoragePath() {
         return config.storagePath;
@@ -121,12 +125,14 @@ public class ModConfig implements IConfig {
         private AutoRestartMode autoRestartMode = AutoRestartMode.DEFAULT;
 
         private String storagePath = "./QuickBackupMulti";
+        private boolean cacheDatabase = false;
 
         @Override
         public String toString() {
             return "ConfigStorage [checkUpdate=" + checkUpdate + ", ignoredFiles=" + ignoredFiles
                 + ", ignoredFolders=" + ignoredFolders + ", lang=" + lang
-                + ", autoRestartMode=" + autoRestartMode + ", storagePath=" + storagePath + "]";
+                + ", autoRestartMode=" + autoRestartMode + ", storagePath=" + storagePath
+                + ", cacheDatabase=" + cacheDatabase + "]";
         }
     }
 }

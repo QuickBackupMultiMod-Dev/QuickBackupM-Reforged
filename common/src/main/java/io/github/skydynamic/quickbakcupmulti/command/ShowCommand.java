@@ -8,7 +8,7 @@ import net.minecraft.commands.Commands;
 import static io.github.skydynamic.quickbakcupmulti.utils.ListBackupsUtils.show;
 
 public class ShowCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("show")
+    public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("show")
         .then(Commands.argument("name", StringArgumentType.string())
             .executes(it ->
                 showBackupDetail(it.getSource(), StringArgumentType.getString(it, "name"))

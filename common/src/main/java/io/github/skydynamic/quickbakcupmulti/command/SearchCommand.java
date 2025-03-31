@@ -14,7 +14,7 @@ import static io.github.skydynamic.quickbakcupmulti.utils.BackupManager.getBacku
 import static io.github.skydynamic.quickbakcupmulti.utils.ListBackupsUtils.search;
 
 public class SearchCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("search")
+    public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("search")
         .then(Commands.argument("name", StringArgumentType.string())
             .executes(it ->
                 searchSaveBackups(it.getSource(), StringArgumentType.getString(it, "name"))

@@ -8,7 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.MutableComponent;
 
 public class ListCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("list")
+    public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("list")
         .executes(it -> listSaveBackups(it.getSource(), 1))
                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
                     .executes(it ->
