@@ -88,7 +88,7 @@ jobs:
         id: properties_v
         uses: christian-draeger/read-properties@1.1.1
         with:
-          path: ${{ format('versions/{0}/gradle.properties', matrix.subproject) }}
+          path: ${{ format('./{0}/gradle.properties', matrix.subproject) }}
           properties: 'platform'
 
       - name: Fix game version
