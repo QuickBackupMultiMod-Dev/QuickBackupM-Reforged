@@ -17,6 +17,9 @@
   "entrypoints": {
     "server": [
       "io.github.skydynamic.quickbakcupmulti.fabric.QuickbakcupmultiReforgedFabric"
+    ],
+    "client": [
+      "io.github.skydynamic.quickbakcupmulti.fabric.client.QuickbakcupmultiReforgedFabricClient"
     ]
   },
   "mixins": [
