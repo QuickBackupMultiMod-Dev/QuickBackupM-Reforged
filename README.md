@@ -36,7 +36,7 @@ _✨ MC备份 / 回档模组 ✨_
 > [!WARNING]  
 > 严禁自行删除备份文件夹内的所有备份文件, 如需删除请进入游戏内进行手动删除! 
 
-> 在使用mod前请确保你已安装Fabric Loader
+> 在Fabric使用时, 请确保你已安装Fabric Loader
 
 将本mod放进`mods`文件夹即可
 

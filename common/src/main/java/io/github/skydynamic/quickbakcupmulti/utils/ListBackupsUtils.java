@@ -50,9 +50,9 @@ public class ListBackupsUtils {
 
     private static MutableComponent getPageNavigationText(String direction, int page, int totalPage, int offset) {
         MutableComponent text = Component.literal(direction);
-        text.withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(direction))));
+        text.withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty(direction))));
         if (page != offset && totalPage > 1) {
-            text.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/qb list " + (page + offset))))
+            text.withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand("/qb list " + (page + offset))))
                 .withStyle(style -> style.withColor(ChatFormatting.AQUA));
         } else {
             text.withStyle(style -> style.withColor(ChatFormatting.DARK_GRAY));
@@ -75,17 +75,17 @@ public class ListBackupsUtils {
         MutableComponent nameText = Component.literal("§6" + truncateString(name, 8) + "§r ");
         MutableComponent resultText = Component.literal("");
 
-        backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore \"%s\"".formatted(name))))
+        backText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb restore \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
-                new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
+                new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
 
-        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete %s".formatted(name))))
+        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete %s".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
-                new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
+                new HoverEvent.ShowText(Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
-        nameText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb show %s".formatted(name))))
+        nameText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb show %s".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
-                new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
+                new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
 
         String desc = info.getDesc();
         if (desc.isEmpty()) desc = "Empty";
@@ -171,12 +171,12 @@ public class ListBackupsUtils {
 
             MutableComponent backText = Component.literal(tr("quickbackupmulti.show.back_button"));
             MutableComponent deleteText = Component.literal(tr("quickbackupmulti.show.delete_button"));
-            backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore \"%s\"".formatted(name))))
+            backText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb restore \"%s\"".formatted(name))))
                 .withStyle(style -> style.withHoverEvent(
-                    new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
-            deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete \"%s\"".formatted(name))))
+                    new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
+            deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete \"%s\"".formatted(name))))
                 .withStyle(style -> style.withHoverEvent(
-                    new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.delete", name)))));
+                    new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
             resultText.append("\n")
                 .append(tr("quickbackupmulti.show.name") + ": §r" + backupInfo.getName() + "\n")
