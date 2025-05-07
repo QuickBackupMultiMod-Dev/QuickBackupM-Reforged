@@ -113,7 +113,7 @@ public class RestoreCommand {
                     if (remaining >= 1) {
                         MutableComponent content = Component.literal(tr("quickbackupmulti.restore.countdown.text", remaining, slot))
                             .append(Component.literal(tr("quickbackupmulti.restore.countdown.hover"))
-                                .withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/qb cancel"))));
+                                .withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand("/qb cancel"))));
                         for (ServerPlayer player : players) {
                             player.sendSystemMessage(content, false);
                         }

@@ -20,9 +20,10 @@ public class MixinClientPacketListener {
     private void showWarning(ClientboundLoginPacket packet, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player != null) {
-            player.sendSystemMessage(
+            player.displayClientMessage(
                 Component.literal("QuickbackupmultiReforged mod is not supporting clients now!")
-                    .withStyle(ChatFormatting.RED)
+                    .withStyle(ChatFormatting.RED),
+                true
             );
         }
     }
