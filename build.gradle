@@ -41,7 +41,7 @@ subprojects {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
 
-        implementation("io.github.skydynamic:incremental-storage-lib:1.1.0")
+        implementation("io.github.skydynamic:incremental-storage-lib:1.2.0+build.25062418.20")
         implementation("org.jetbrains.exposed:exposed-core:0.57.0")
         implementation("org.jetbrains.exposed:exposed-jdbc:0.57.0")
         implementation("com.h2database:h2:2.2.224")
