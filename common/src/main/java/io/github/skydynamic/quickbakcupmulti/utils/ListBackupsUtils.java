@@ -68,7 +68,7 @@ public class ListBackupsUtils {
         return getPageNavigationText("[->]", page, totalPage, 1);
     }
 
-    private static MutableComponent getSlotText(StorageInfo info, int page, int num, long backupSizeB) throws IOException {
+    private static MutableComponent getSlotText(StorageInfo info, int page, int num) throws IOException {
         String name = info.getName();
         MutableComponent backText = Component.literal("§2[▷] ");
         MutableComponent deleteText = Component.literal("§c[×] ");
@@ -89,14 +89,10 @@ public class ListBackupsUtils {
 
         String desc = info.getDesc();
         if (desc.isEmpty()) desc = "Empty";
-        double backupSizeMB = (double) backupSizeB / FileUtils.ONE_MB;
-        double backupSizeGB = (double) backupSizeB / FileUtils.ONE_GB;
-        String sizeString = (backupSizeMB >= 1000) ? String.format("%.2fGB", backupSizeGB) : String.format("%.2fMB", backupSizeMB);
         resultText.append("\n" + tr("quickbackupmulti.list_backup.slot.header", num + (5 * (page - 1))) + " ")
             .append(nameText)
             .append(backText)
             .append(deleteText)
-            .append("§a" + sizeString)
             .append(String.format(" §b%s§7: §r%s", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(info.getTimestamp()), truncateString(desc, 10)));
         return resultText;
     }
@@ -116,6 +112,10 @@ public class ListBackupsUtils {
             return Component.literal(tr("quickbackupmulti.list_empty"));
         }
         int totalPage = getTotalPage(backupsInfoList);
+        File blogsDir = backupPath.resolve("blogs").toFile();
+        if (blogsDir.exists()) {
+            totalBackupSizeB = getDirSize(blogsDir);
+        }
 
         MutableComponent resultText = Component.literal(tr("quickbackupmulti.list_backup.title", page));
         MutableComponent backPageText = getBackPageText(page, totalPage);
@@ -130,9 +130,7 @@ public class ListBackupsUtils {
             try {
                 StorageInfo info = backupsInfoList.get(((j - 1) + BACKUPS_PER_PAGE * (page - 1)));
                 String name = info.getName();
-                long backupSizeB = getDirSize(backupPath.resolve(name).toFile());
-                totalBackupSizeB += backupSizeB;
-                resultText.append(getSlotText(info, page, j, backupSizeB));
+                resultText.append(getSlotText(info, page, j));
             } catch (IOException e) {
                 logger.error("Error while listing backups", e);
                 return Component.literal("Error while listing backups").withStyle(ChatFormatting.RED);
@@ -151,8 +149,7 @@ public class ListBackupsUtils {
             try {
                 String name = searchResultList.get(i - 1);
                 StorageInfo result = QuickbakcupmultiReforged.getDatabase().getStorageInfoWithName(name);
-                long backupSizeB = getDirSize(backupPath.resolve(name).toFile());
-                resultText.append(getSlotText(result, 1, i, backupSizeB));
+                resultText.append(getSlotText(result, 1, i));
             } catch (IOException e) {
                 logger.error("Error while searching backups", e);
                 return Component.literal("Error while searching backups").withStyle(ChatFormatting.RED);
@@ -163,7 +160,7 @@ public class ListBackupsUtils {
 
     public static MutableComponent show(String name) {
         MutableComponent resultText;
-        if (QuickbakcupmultiReforged.getStorager().storageExists(name)) {
+        if (QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
             StorageInfo backupInfo = QuickbakcupmultiReforged.getDatabase().getStorageInfoWithName(name);
             resultText = Component.literal(tr("quickbackupmulti.show.header"));
             String desc = backupInfo.getDesc();

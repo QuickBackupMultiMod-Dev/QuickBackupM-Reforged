@@ -1,7 +1,7 @@
 package io.github.skydynamic.quickbakcupmulti;
 
 import io.github.skydynamic.increment.storage.lib.database.Database;
-import io.github.skydynamic.increment.storage.lib.util.Storager;
+import io.github.skydynamic.increment.storage.lib.utils.StorageManager;
 import io.github.skydynamic.quickbakcupmulti.command.ModCommand;
 import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
 import io.github.skydynamic.quickbakcupmulti.translate.Translate;
@@ -20,7 +20,7 @@ public final class QuickbakcupmultiReforged {
     @Getter @Setter
     private static Database database;
     @Getter @Setter
-    private static Storager storager;
+    private static StorageManager manager;
     @Getter @Setter
     private static ServerManager serverManager;
     @Getter @Setter

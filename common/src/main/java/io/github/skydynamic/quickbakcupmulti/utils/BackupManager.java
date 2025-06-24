@@ -1,7 +1,5 @@
 package io.github.skydynamic.quickbakcupmulti.utils;
 
-import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
-import io.github.skydynamic.increment.storage.lib.util.IndexUtil;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -20,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -43,7 +42,7 @@ public class BackupManager {
     }
 
     private static void getBackupExists(File file, Consumer<String> consumer) {
-        if (file.isDirectory() && QuickbakcupmultiReforged.getStorager().storageExists(file.getName())) {
+        if (file.isDirectory() && QuickbakcupmultiReforged.getDatabase().storageExists(file.getName())) {
             consumer.accept(file.getName());
         }
     }
@@ -61,7 +60,7 @@ public class BackupManager {
     }
 
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
-        if (QuickbakcupmultiReforged.getStorager().storageExists(name)) {
+        if (QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail_exists")));
             return;
         }
@@ -75,14 +74,13 @@ public class BackupManager {
                 serverLevel.noSave = true;
             }
 
-            StorageInfo storageInfo = new StorageInfo(name, desc, System.currentTimeMillis(), true, new ArrayList<>());
-
-            QuickbakcupmultiReforged.getStorager()
-                .incrementalStorage(
-                    storageInfo, QuickbakcupmultiReforged.getModContainer().getCurrentSavePath(),
-                    BackupManager.getBackupPath().resolve(name),
-                    fileFilter, folderFilter
-                );
+            QuickbakcupmultiReforged.getManager().incrementalStorage(
+                name,
+                desc,
+                QuickbakcupmultiReforged.getModContainer().getCurrentSavePath().toFile(),
+                fileFilter,
+                folderFilter
+            );
 
             long endTime = System.currentTimeMillis();
             double intervalTime = (endTime - startTime) / 1000.0;
@@ -97,43 +95,30 @@ public class BackupManager {
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
-            try {
-                FileUtils.forceDeleteOnExit(getBackupPath().resolve(name).toFile());
-            } catch (IOException ex) {
-                logger.error("Delete Backup Failed", ex);
-            }
         }
     }
 
     public static boolean deleteBackup(CommandSourceStack commandSource, String name) {
-        if (QuickbakcupmultiReforged.getStorager().storageExists(name)) {
-            try {
-                IndexUtil.reIndex(name, "");
-                QuickbakcupmultiReforged.getStorager().deleteStorage(name);
-                FileUtils.deleteDirectory(getBackupPath().resolve(name).toFile());
-                return true;
-            } catch (IOException e) {
-                logger.error("Delete Backup Failed", e);
-                return false;
-            }
-        } else return false;
+        if (QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
+            QuickbakcupmultiReforged.getManager().deleteStorage(name);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static void restoreBackup(String name) {
-        File targetBackupSlot = getBackupPath().resolve(name).toFile();
+        Map<String, String> hashMap = QuickbakcupmultiReforged.getDatabase().getFileHashMap(name);
         Path savePath = QuickbakcupmultiReforged.getModContainer().getCurrentSavePath();
         try {
-            for (File file : FileUtils.listFiles(savePath.toFile(), fileFilter, folderFilter)) {
-                if (file.equals(savePath.toFile())) continue;
-                FileUtils.forceDelete(file);
+            for (Map.Entry<String, String> entry : hashMap.entrySet()) {
+                String fileHash = entry.getKey();
+                String fileName = entry.getValue();
+                String hashStart = fileHash.substring(0, 2);
+                File hashFile = new File(QuickbakcupmultiReforged.getModConfig().getStoragePath(), "blogs/" + hashStart + "/" + fileHash);
+                File targetDir = savePath.resolve(fileName).toFile();
+                FileUtils.copyFile(hashFile, targetDir);
             }
-
-            FileUtils.copyDirectory(targetBackupSlot, savePath.toFile());
-            IndexUtil.copyIndexFile(
-                name,
-                Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath()).resolve(""),
-                savePath.toFile()
-            );
         } catch (IOException e) {
             logger.error("Restore Failed", e);
         }

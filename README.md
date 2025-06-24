@@ -17,6 +17,10 @@
 _✨ MC备份 / 回档模组 ✨_  
 重构自MCDR插件: [QuickBackupMulti](https://github.com/TISUnion/QuickBackupM)
 与 Mod [QuickBackupMulti-Fabric](https://github.com/QuickBackupMultiMod-Dev/QuickBackupM-Fabric)
+
+## 警告
+### 如果你使用的是v3.1.0之后的mod, 你的之前的备份将会永久丢失, 因为3.1.0更换了更优秀的备份算法, 请做好数据备份
+
 </div>
 
 > [!WARNING]  
@@ -43,7 +47,7 @@ _✨ MC备份 / 回档模组 ✨_
 ## 指令
 `/qb` 或 `/quickbackupmulti`均可触发mod
 
-## todo
+## 特性
 - [ ] 定时备份
 - [x] 无限槽位
 - [x] Hash对比并仅备份差异文件

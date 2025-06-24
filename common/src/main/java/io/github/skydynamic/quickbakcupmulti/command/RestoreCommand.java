@@ -68,7 +68,7 @@ public class RestoreCommand {
     private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Object>> restoreDataMap = new ConcurrentHashMap<>();
 
     private static int restoreBackup(CommandSourceStack commandSource, String name) {
-        if (!QuickbakcupmultiReforged.getStorager().storageExists(name)) {
+        if (!QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
             return 0;
         }
@@ -86,7 +86,7 @@ public class RestoreCommand {
     private static void executeRestore(CommandSourceStack commandSource) {
         synchronized (restoreDataMap) {
             if (restoreDataMap.containsKey("QBM")) {
-                if (!QuickbakcupmultiReforged.getStorager().storageExists(restoreDataMap.get("QBM").get("Slot").toString())) {
+                if (!QuickbakcupmultiReforged.getDatabase().storageExists(restoreDataMap.get("QBM").get("Slot").toString())) {
                     commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
                     restoreDataMap.clear();
                     return;
