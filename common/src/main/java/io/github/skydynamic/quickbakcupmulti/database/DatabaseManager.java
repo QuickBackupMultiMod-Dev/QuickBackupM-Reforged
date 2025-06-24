@@ -1,6 +1,6 @@
 package io.github.skydynamic.quickbakcupmulti.database;
 
-import io.github.skydynamic.increment.storage.lib.Interface.IDatabaseManager;
+import io.github.skydynamic.increment.storage.lib.manager.IDatabaseManager;
 import lombok.Getter;
 import lombok.Setter;
 

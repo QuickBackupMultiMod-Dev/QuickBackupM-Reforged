@@ -2,7 +2,7 @@ package io.github.skydynamic.quickbakcupmulti.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.github.skydynamic.increment.storage.lib.Interface.IConfig;
+import io.github.skydynamic.increment.storage.lib.manager.IConfig;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.Logger;
