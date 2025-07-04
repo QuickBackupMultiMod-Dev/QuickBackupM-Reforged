@@ -37,7 +37,7 @@ dependencies {
     common(project(path: ":${mod_id}-common:", configuration: "namedElements")) { transitive false }
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionFabric")
 
-    include("io.github.skydynamic:incremental-storage-lib:1.1.0")
+    include("io.github.skydynamic:incremental-storage-lib:1.2.0+build.25062418.20")
     include("org.jetbrains.exposed:exposed-core:0.57.0")
     include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
     include("com.h2database:h2:2.2.224")
