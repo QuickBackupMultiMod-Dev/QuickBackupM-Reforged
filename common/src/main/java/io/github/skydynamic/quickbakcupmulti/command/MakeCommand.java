@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.schedule.ScheduleManager;
 import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionType;
@@ -31,6 +32,10 @@ public class MakeCommand {
             BackupManager.makeBackup(sourceStack, name, desc);
             if (QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
                 DatabaseCache.updateStorageInfoCaches();
+            }
+
+            if (QuickbakcupmultiReforged.getModConfig().getScheduleBackupConfig().isResetTimerOnBackup() && ScheduleManager.resetTimer("scheduleBackup")) {
+                QuickbakcupmultiReforged.logger.info("Reset timer for scheduleBackup");
             }
             QuickbakcupmultiReforged.logger.info("Make Backup thread close => {}ms", System.currentTimeMillis() - l);
         }

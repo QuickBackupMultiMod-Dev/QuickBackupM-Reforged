@@ -4,6 +4,7 @@ import io.github.skydynamic.increment.storage.lib.database.Database;
 import io.github.skydynamic.increment.storage.lib.utils.StorageManager;
 import io.github.skydynamic.quickbakcupmulti.command.ModCommand;
 import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
+import io.github.skydynamic.quickbakcupmulti.schedule.quartz.DisableQuartzInfoLogger;
 import io.github.skydynamic.quickbakcupmulti.translate.Translate;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
 import lombok.Getter;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 
 public final class QuickbakcupmultiReforged {
     public static final String MOD_ID = "quickbakcupmulti_reforged";
@@ -45,10 +47,18 @@ public final class QuickbakcupmultiReforged {
         if (!storagePath.exists()) {
             storagePath.mkdirs();
         }
+
+        // Disable Quartz Info Logger
+        DisableQuartzInfoLogger.disable();
     }
 
     public static void registerCommand() {
         if (modContainer.getDispatcher() == null) return;
         ModCommand.register(modContainer.getDispatcher());
+    }
+
+    public static String formatTimestamp(long timestamp) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(timestamp);
     }
 }

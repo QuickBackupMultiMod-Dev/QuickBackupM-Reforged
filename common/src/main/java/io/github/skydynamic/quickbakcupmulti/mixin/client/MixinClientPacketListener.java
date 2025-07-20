@@ -22,8 +22,7 @@ public class MixinClientPacketListener {
         if (player != null) {
             player.displayClientMessage(
                 Component.literal("QuickbackupmultiReforged mod is not supporting clients now!")
-                    .withStyle(ChatFormatting.RED),
-                true
+                    .withStyle(ChatFormatting.RED), false
             );
         }
     }

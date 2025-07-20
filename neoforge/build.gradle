@@ -38,12 +38,16 @@ dependencies {
     common(project(path: ":${mod_id}-common", configuration: "namedElements")) { transitive false }
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionNeoForge")
 
-    forgeRuntimeLibrary("io.github.skydynamic:incremental-storage-lib:1.2.0+build.25062418.20")
+    forgeRuntimeLibrary("org.quartz-scheduler:quartz:2.5.0")
+
+    forgeRuntimeLibrary("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
     forgeRuntimeLibrary("org.jetbrains.exposed:exposed-core:0.57.0")
     forgeRuntimeLibrary("org.jetbrains.exposed:exposed-jdbc:0.57.0")
     forgeRuntimeLibrary("com.h2database:h2:2.2.224")
 
-    include("io.github.skydynamic:incremental-storage-lib:1.2.0+build.25062418.20")
+    include("org.quartz-scheduler:quartz:2.5.0")
+
+    include("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
     include("org.jetbrains.exposed:exposed-core:0.57.0")
     include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
     include("com.h2database:h2:2.2.224")
