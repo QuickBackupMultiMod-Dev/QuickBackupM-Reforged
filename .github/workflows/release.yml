@@ -5,6 +5,9 @@ on:
         description: The tag of the release you want to append the artifact to
         type: string
         required: true
+      release:
+        type: boolean
+        required: true
   release:
     types:
       - published
@@ -26,7 +29,7 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
     with:
-      release: true
+      release: ${{ github.event_name == 'release' && !github.event.release.prerelease || github.event_name == 'workflow_dispatch' && github.event.inputs.release}}
 
   release:
     needs:
@@ -152,7 +155,7 @@ jobs:
 
           name: ${{ format('{0} v{1} for mc{2}-{3}', steps.properties_g.outputs.archives_name, steps.properties_g.outputs.mod_version, steps.properties_g.outputs.minecraft_version, steps.properties_v.outputs.platform) }}
           version: ${{ format('mc{0}-v{1}-{2}', steps.properties_g.outputs.minecraft_version, steps.properties_g.outputs.mod_version, steps.properties_v.outputs.platform) }}
-          version-type: release
+          version-type: ${{github.event_name == 'release' && github.event.release.prerelease && 'alpha' || github.event_name == 'workflow_dispatch' && !github.event.inputs.release && 'alpha' || 'release' }}
 
           loaders: ${{ steps.properties_v.outputs.platform }}
           game-versions: ${{ steps.game_versions.outputs.value }}
