@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import io.github.skydynamic.increment.storage.lib.manager.IConfig;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,11 @@ import java.util.ArrayList;
 
 public class ModConfig implements IConfig {
     private static final Logger logger = LoggerFactory.getLogger("Qbm-Config");
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    private static final Gson gson = new GsonBuilder()
+        .setPrettyPrinting()
+        .disableHtmlEscaping()
+        .serializeNulls()
+        .create();
 
     @Setter @Getter
     private ConfigStorage config = new ConfigStorage();
@@ -101,8 +106,12 @@ public class ModConfig implements IConfig {
         return config.cacheDatabase;
     }
 
+    public DatabaseConfig getDatabaseConfig() {
+        return config.database;
+    }
+
     @Override
-    public String getStoragePath() {
+    public @NotNull String getStoragePath() {
         return config.storagePath;
     }
 
@@ -126,6 +135,8 @@ public class ModConfig implements IConfig {
 
         private String storagePath = "./QuickBackupMulti";
         private boolean cacheDatabase = false;
+
+        private DatabaseConfig database = new DatabaseConfig();
 
         @Override
         public String toString() {

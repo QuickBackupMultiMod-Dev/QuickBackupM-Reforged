@@ -6,6 +6,7 @@ import io.github.skydynamic.increment.storage.lib.utils.StorageManager;
 import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.database.DatabaseManager;
+import io.github.skydynamic.quickbakcupmulti.event.OnLoadedWorldHandler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
 import net.minecraft.server.WorldStem;
@@ -53,5 +54,7 @@ public abstract class MixinMinecraftServer extends MinecraftServer {
         if (QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
             DatabaseCache.updateStorageInfoCaches();
         }
+
+        OnLoadedWorldHandler.handler();
     }
 }
