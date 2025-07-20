@@ -105,6 +105,15 @@ public class ModSchedule implements IModSchedule, Job {
     }
 
     @Override
+    public boolean resetTimer() {
+        if (scheduler != null) {
+            stopSchedule();
+            return startSchedule();
+        }
+        return false;
+    }
+
+    @Override
     public void execute(JobExecutionContext jobExecutionContext) {
         JobDataMap dataMap = jobExecutionContext.getMergedJobDataMap();
         int jitter = dataMap.getInt("jitter");

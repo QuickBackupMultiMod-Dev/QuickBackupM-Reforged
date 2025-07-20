@@ -45,4 +45,14 @@ public class ScheduleManager {
         stopAllSchedule();
         QuickbakcupmultiReforged.getModContainer().getSchedules().clear();
     }
+
+    public static boolean resetTimer(String name) {
+        for (IModSchedule schedule : QuickbakcupmultiReforged.getModContainer().getSchedules()) {
+            if (schedule.getName().equals(name) && schedule.resetTimer()) {
+                QuickbakcupmultiReforged.logger.info("Reset timer: {}", name);
+                return true;
+            }
+        }
+        return false;
+    }
 }

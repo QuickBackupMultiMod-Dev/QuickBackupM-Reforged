@@ -106,6 +106,10 @@ public class ModConfig implements IConfig {
         return config.cacheDatabase;
     }
 
+    public ScheduleBackupConfig getScheduleBackupConfig() {
+        return config.scheduleBackup;
+    }
+
     public DatabaseConfig getDatabaseConfig() {
         return config.database;
     }
@@ -136,14 +140,24 @@ public class ModConfig implements IConfig {
         private String storagePath = "./QuickBackupMulti";
         private boolean cacheDatabase = false;
 
+        private ScheduleBackupConfig scheduleBackup = new ScheduleBackupConfig();
+
         private DatabaseConfig database = new DatabaseConfig();
 
         @Override
         public String toString() {
-            return "ConfigStorage [checkUpdate=" + checkUpdate + ", ignoredFiles=" + ignoredFiles
-                + ", ignoredFolders=" + ignoredFolders + ", lang=" + lang
-                + ", autoRestartMode=" + autoRestartMode + ", storagePath=" + storagePath
-                + ", cacheDatabase=" + cacheDatabase + "]";
+            return "ConfigStorage{" +
+                    "checkUpdate=" + checkUpdate +
+                    ", ignoredFiles=" + ignoredFiles +
+                    ", ignoredFolders=" + ignoredFolders +
+                    ", lang='" + lang + '\'' +
+                    ", maxScheduleBackup=" + maxScheduleBackup +
+                    ", autoRestartMode=" + autoRestartMode +
+                    ", storagePath='" + storagePath + '\'' +
+                    ", cacheDatabase=" + cacheDatabase +
+                    ", scheduleBackup=" + scheduleBackup +
+                    ", database=" + database +
+                    '}';
         }
     }
 }

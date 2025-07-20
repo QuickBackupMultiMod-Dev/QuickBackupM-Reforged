@@ -10,5 +10,7 @@ public interface IModSchedule {
 
     long getNextExecuteTime();
 
+    boolean resetTimer();
+
     IModSchedule setExcutor(Runnable executor);
 }

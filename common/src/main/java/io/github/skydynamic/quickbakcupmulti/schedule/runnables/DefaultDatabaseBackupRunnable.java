@@ -7,7 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class DatabaseBackupRunnable implements Runnable {
+public class DefaultDatabaseBackupRunnable implements Runnable {
     @Override
     public void run() {
         Path storagePath = Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath());
