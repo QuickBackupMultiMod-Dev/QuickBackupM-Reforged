@@ -1,6 +1,7 @@
 package io.github.skydynamic.quickbakcupmulti.event;
 
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.schedule.ScheduleManager;
 import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 
 public class OnServerStoppedHandler {
@@ -16,6 +17,7 @@ public class OnServerStoppedHandler {
             }
         } else {
             QuickbakcupmultiReforged.getDatabase().closeDatabase();
+            ScheduleManager.clearAllSchedule();
         }
     }
 }

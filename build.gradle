@@ -41,10 +41,14 @@ subprojects {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
 
+        // incremental storage
         implementation("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
         implementation("org.jetbrains.exposed:exposed-core:0.57.0")
         implementation("org.jetbrains.exposed:exposed-jdbc:0.57.0")
         implementation("com.h2database:h2:2.2.224")
+
+        // https://mvnrepository.com/artifact/org.quartz-scheduler/quartz
+        implementation("org.quartz-scheduler:quartz:2.5.0")
 
         // lombok
         compileOnly("org.projectlombok:lombok:1.18.30")
