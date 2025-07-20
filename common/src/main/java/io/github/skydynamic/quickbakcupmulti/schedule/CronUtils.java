@@ -1,7 +1,7 @@
 package io.github.skydynamic.quickbakcupmulti.schedule;
 
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
-import io.github.skydynamic.quickbakcupmulti.utils.JitterUtils;
+import io.github.skydynamic.quickbakcupmulti.utils.DurationUtils;
 import org.quartz.*;
 
 import java.text.ParseException;
@@ -22,7 +22,7 @@ public class CronUtils {
     public static <T> Trigger buildTrigger(String name, ScheduleMode mode, T value, String jitter) {
         IllegalArgumentException buildException = new IllegalArgumentException("Schedule mode %s requires value of type %s, but got %s (value: %s)"
                                 .formatted(mode.name(), mode.type.getName(), value.getClass().getName(), value));
-        int jitterSeconds = JitterUtils.parseAndRandom(jitter);
+        int jitterSeconds = DurationUtils.parseAndRandom(jitter);
         switch (mode) {
             case INTERVAL -> {
                 if (value instanceof Integer v) {

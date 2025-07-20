@@ -110,6 +110,10 @@ public class ModConfig implements IConfig {
         return config.scheduleBackup;
     }
 
+    public PruneScheduleConfig getPruneScheduleConfig() {
+        return config.prune;
+    }
+
     public DatabaseConfig getDatabaseConfig() {
         return config.database;
     }
@@ -142,6 +146,8 @@ public class ModConfig implements IConfig {
 
         private ScheduleBackupConfig scheduleBackup = new ScheduleBackupConfig();
 
+        private PruneScheduleConfig prune = new PruneScheduleConfig();
+
         private DatabaseConfig database = new DatabaseConfig();
 
         @Override
@@ -156,6 +162,7 @@ public class ModConfig implements IConfig {
                     ", storagePath='" + storagePath + '\'' +
                     ", cacheDatabase=" + cacheDatabase +
                     ", scheduleBackup=" + scheduleBackup +
+                    ", prune=" + prune +
                     ", database=" + database +
                     '}';
         }
