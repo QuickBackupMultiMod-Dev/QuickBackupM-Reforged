@@ -20,8 +20,10 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     strategy:
       matrix: ${{ fromJson(inputs.matrix) }}
+
     steps:
       - uses: actions/checkout@v4
 

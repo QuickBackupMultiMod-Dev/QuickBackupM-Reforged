@@ -50,6 +50,8 @@ jobs:
       GT: ${{ secrets.GITHUB_TOKEN }}
       CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
       MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
+    permissions:
+      contents: write
 
   release_alpha:
     needs:
@@ -63,3 +65,5 @@ jobs:
       GT: ${{ secrets.GITHUB_TOKEN }}
       CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
       MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
+    permissions:
+      contents: write
