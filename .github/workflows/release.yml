@@ -46,6 +46,10 @@ jobs:
     with:
       version-type: release
       matrix: ${{ needs.matrix_prep.outputs.matrix }}
+    secrets:
+      GT: ${{ secrets.GITHUB_TOKEN }}
+      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+      MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
 
   release_alpha:
     needs:
@@ -55,3 +59,7 @@ jobs:
     with:
       version-type: alpha
       matrix: ${{ needs.matrix_prep.outputs.matrix }}
+    secrets:
+      GT: ${{ secrets.GITHUB_TOKEN }}
+      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+      MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}

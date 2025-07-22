@@ -9,6 +9,13 @@ on:
       matrix:
         type: string
         required: true
+    secrets:
+      GT:
+        required: true
+      CURSEFORGE_TOKEN:
+        required: true
+      MODRINTH_API_TOKEN:
+        required: true
 
 jobs:
   publish:
@@ -86,7 +93,7 @@ jobs:
           curseforge-id: 951047
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-tag: ${{ steps.release_info.outputs.tag_name }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GT }}
           files: ${{ steps.file_info.outputs.path }}
           name: ${{ format('{0} v{1} for mc{2}-{3}', steps.properties_g.outputs.archives_name, steps.properties_g.outputs.mod_version, steps.properties_g.outputs.minecraft_version, steps.properties_v.outputs.platform) }}
           version: ${{ format('mc{0}-v{1}-{2}', steps.properties_g.outputs.minecraft_version, steps.properties_g.outputs.mod_version, steps.properties_v.outputs.platform) }}
