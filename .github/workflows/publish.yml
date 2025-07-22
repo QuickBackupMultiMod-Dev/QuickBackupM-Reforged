@@ -1,0 +1,101 @@
+# .github/workflows/publish.yml
+name: Publish Mod
+on:
+  workflow_call:
+    inputs:
+      version-type:
+        type: string
+        required: true
+      matrix:
+        type: string
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: build-artifacts
+
+      - name: Read common properties
+        uses: christian-draeger/read-properties@1.1.1
+        with:
+          path: gradle.properties
+          properties: 'archives_name mod_version minecraft_version minecraft_supported_versions'
+        id: properties_g
+
+      - name: Read version-specific properties
+        uses: christian-draeger/read-properties@1.1.1
+        with:
+          path: ${{ format('./{0}/gradle.properties', matrix.subproject) }}
+          properties: 'platform'
+        id: properties_v
+
+      - name: Fix game version
+        id: game_versions
+        run: |
+          echo 'value<<EOF' >> $GITHUB_OUTPUT
+          echo -e "${{ steps.properties_v.outputs.minecraft_support_version }}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - name: Prepare file information
+        id: file_info
+        run: |
+          shopt -s extglob
+          FILE_PATHS=$(ls ${{ format('build-artifacts/{0}/build/libs/!(*-@(dev|sources|shadow)).jar', matrix.subproject) }})
+          if (( ${#FILE_PATHS[@]} != 1 )); then
+              echo "Error: Found ${#FILE_PATHS[@]} files, expected exactly 1"
+              exit 1
+          else
+              FILE_PATH=${FILE_PATHS[0]}
+          fi
+          
+          FILE_NAME=$(basename $FILE_PATH)
+          FILE_HASH=$(sha256sum $FILE_PATH | awk '{ print $1 }')
+          echo "path=$FILE_PATH" >> $GITHUB_OUTPUT
+          echo "name=$FILE_NAME" >> $GITHUB_OUTPUT
+          echo "hash=$FILE_HASH" >> $GITHUB_OUTPUT
+
+      - name: Prepare changelog
+        uses: actions/github-script@v6
+        id: changelog
+        with:
+          script: return process.env.CHANGELOG
+          result-encoding: string
+        env:
+          CHANGELOG: |-
+            ${{ format('{0}{1}', github.event.release.body, steps.get_release.outputs.body) }}
+            -------
+            Build Information
+            - File name: `${{ steps.file_info.outputs.name }}`
+            - SHA-256: `${{ steps.file_info.outputs.hash }}`
+            - Built from: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Publish Minecraft Mods
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: DgWBIBY5
+          modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
+          curseforge-id: 951047
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          github-tag: ${{ steps.release_info.outputs.tag_name }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ steps.file_info.outputs.path }}
+          name: ${{ format('{0} v{1} for mc{2}-{3}', steps.properties_g.outputs.archives_name, steps.properties_g.outputs.mod_version, steps.properties_g.outputs.minecraft_version, steps.properties_v.outputs.platform) }}
+          version: ${{ format('mc{0}-v{1}-{2}', steps.properties_g.outputs.minecraft_version, steps.properties_g.outputs.mod_version, steps.properties_v.outputs.platform) }}
+          version-type: ${{ inputs.version-type }}
+          loaders: ${{ steps.properties_v.outputs.platform }}
+          game-versions: ${{ steps.game_versions.outputs.value }}
+          game-version-filter: any
+          github-changelog: ${{ format('{0}{1}', github.event.release.body, steps.get_release.outputs.body) }}
+          modrinth-changelog: ${{ steps.changelog.outputs.result }}
+          curseforge-changelog: ${{ steps.changelog.outputs.result }}
+          retry-attempts: 3
+          retry-delay: 10000
