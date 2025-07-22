@@ -51,7 +51,7 @@ jobs:
         id: game_versions
         run: |
           echo 'value<<EOF' >> $GITHUB_OUTPUT
-          echo -e "${{ steps.properties_v.outputs.minecraft_support_version }}" >> $GITHUB_OUTPUT
+          echo -e "${{ steps.properties_g.outputs.minecraft_supported_versions }}" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Prepare file information
@@ -102,7 +102,7 @@ jobs:
           version-type: ${{ inputs.version-type }}
           loaders: ${{ steps.properties_v.outputs.platform }}
           game-versions: ${{ steps.game_versions.outputs.value }}
-          game-version-filter: any
+          game-version-filter: releases
           github-changelog: ${{ format('{0}{1}', github.event.release.body, steps.get_release.outputs.body) }}
           modrinth-changelog: ${{ steps.changelog.outputs.result }}
           curseforge-changelog: ${{ steps.changelog.outputs.result }}
