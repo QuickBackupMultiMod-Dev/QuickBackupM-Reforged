@@ -3,6 +3,9 @@ name: Publish Mod
 on:
   workflow_call:
     inputs:
+      target-tag:
+        type: string
+        required: true
       version-type:
         type: string
         required: true
@@ -94,7 +97,7 @@ jobs:
           modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
           curseforge-id: 951047
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
-          github-tag: ${{ steps.release_info.outputs.tag_name }}
+          github-tag: ${{ inputs.target-tag }}
           github-token: ${{ secrets.GT }}
           files: ${{ steps.file_info.outputs.path }}
           name: ${{ format('{0} v{1} for mc{2}-{3}', steps.properties_g.outputs.archives_name, steps.properties_g.outputs.mod_version, steps.properties_g.outputs.minecraft_version, steps.properties_v.outputs.platform) }}

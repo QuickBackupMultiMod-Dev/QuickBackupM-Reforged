@@ -18,12 +18,41 @@ jobs:
   show_action_parameters:
     runs-on: ubuntu-latest
     steps:
+
       - name: Show action parameters
         run: |
           cat <<EOF > $GITHUB_STEP_SUMMARY
           ## Action Parameters
           - target_release_tag: \`${{ github.event.inputs.target_release_tag }}\`
           EOF
+
+  generate_release_info:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.release_info.outputs.tag_name }}
+    steps:
+      - name: Get github release information
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        id: get_release
+        uses: cardinalby/git-get-release-action@1.2.4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tag: ${{ github.event.inputs.target_release_tag }}
+
+      - name: Generate publish related information
+        id: release_info
+        run: |
+          if [ $GITHUB_EVENT_NAME == 'release' ]
+          then
+              echo "tag_name=" >> $GITHUB_OUTPUT  # leave an empty value here so softprops/action-gh-release will use the default value
+          elif [ $GITHUB_EVENT_NAME == 'workflow_dispatch' ]
+          then
+              echo "tag_name=${{ github.event.inputs.target_release_tag }}" >> $GITHUB_OUTPUT
+          else
+              echo Unknown github event name $GITHUB_EVENT_NAME
+              exit 1
+          fi
 
   matrix_prep:
     uses: ./.github/workflows/matrix_prep.yml
@@ -42,8 +71,10 @@ jobs:
     needs:
       - matrix_prep
       - build_release
+      - generate_release_info
     uses: ./.github/workflows/publish.yml
     with:
+      target-tag: ${{ needs.generate_release_info.outputs.tag_name }}
       version-type: release
       matrix: ${{ needs.matrix_prep.outputs.matrix }}
     secrets:
@@ -57,8 +88,10 @@ jobs:
     needs:
       - matrix_prep
       - build_alpha
+      - generate_release_info
     uses: ./.github/workflows/publish.yml
     with:
+      target-tag: ${{ needs.generate_release_info.outputs.tag_name }}
       version-type: alpha
       matrix: ${{ needs.matrix_prep.outputs.matrix }}
     secrets:
