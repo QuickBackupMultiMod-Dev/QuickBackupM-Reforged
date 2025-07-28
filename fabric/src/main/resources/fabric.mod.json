@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "quickbakcupmulti",
+  "id": "quickbakcupmulti_reforged",
   "version": "${version}",
   "name": "QuickBakcupMulti",
   "description": "A backup / restore mod, with multiple backup slots",

@@ -6,6 +6,7 @@ import io.github.skydynamic.quickbakcupmulti.command.ModCommand;
 import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
 import io.github.skydynamic.quickbakcupmulti.schedule.quartz.DisableQuartzInfoLogger;
 import io.github.skydynamic.quickbakcupmulti.translate.Translate;
+import io.github.skydynamic.quickbakcupmulti.utils.UpdateChecker;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,6 +39,8 @@ public final class QuickbakcupmultiReforged {
         modConfig.load();
         modConfig.save();
         modContainer.setPermissionManager(new PermissionManager());
+
+        new UpdateChecker().start();
 
         // Initialize Translate
         Translate.handleResourceReload(modConfig.getLang());
