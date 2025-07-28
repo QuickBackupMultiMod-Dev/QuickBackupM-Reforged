@@ -7,8 +7,8 @@ import java.util.List;
 @SuppressWarnings("FieldMayBeFinal")
 @Getter
 public class ScheduleBackupConfig extends ScheduleConfig {
-    private boolean resetTimerOnBackup = true;
-    private boolean requireOnlinePlayers = false;
-    private boolean requireOnlinePlayersIgnoreCarpetFakePlayer = true;
-    private List<String> requireOnlinePlayersBlacklist = List.of();
+    public boolean resetTimerOnBackup = true;
+    public boolean requireOnlinePlayers = false;
+    public boolean requireOnlinePlayersIgnoreCarpetFakePlayer = true;
+    public List<String> requireOnlinePlayersBlacklist = List.of();
 }

@@ -1,6 +1,10 @@
 package io.github.skydynamic.quickbakcupmulti.utils;
 
+import io.github.skydynamic.increment.storage.lib.database.Database;
+import io.github.skydynamic.increment.storage.lib.database.DatabaseTables;
+import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.database.DatabaseManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -16,10 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
@@ -30,7 +31,7 @@ public class BackupManager {
     private static final IOFileFilter fileFilter = new NotFileFilter(new NameFileFilter(QuickbakcupmultiReforged.getModConfig().getIgnoredFiles()));
 
     public static Path getBackupPath() {
-        Path path = Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath());
+        Path path = Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath()).resolve(QuickbakcupmultiReforged.getModContainer().getLevelId());
         if (!Files.exists(path) || !Files.isDirectory(path)) {
             try {
                 Files.createDirectories(path);
@@ -121,6 +122,25 @@ public class BackupManager {
             }
         } catch (IOException e) {
             logger.error("Restore Failed", e);
+        }
+    }
+
+    public static void deleteWorld(String worldName) {
+        try {
+            FileUtils.deleteDirectory(Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath()).resolve(worldName).toFile());
+            DatabaseManager databaseManager = new DatabaseManager(
+                "QuickBakcupMulti",
+                QuickbakcupmultiReforged.getModConfig().getStoragePath(),
+                UUID.nameUUIDFromBytes(worldName.getBytes())
+            );
+            Database database = new Database(databaseManager);
+            List<StorageInfo> storageInfoList = database.getAllStorageInfo();
+            for (StorageInfo storageInfo : storageInfoList) {
+                database.deleteTableValue(storageInfo.getName(), DatabaseTables.FILE_HASH);
+                database.deleteTableValue(storageInfo.getName(), DatabaseTables.STORAGE_INFO);
+            }
+        } catch (IOException e) {
+            QuickbakcupmultiReforged.logger.error("Delete Failed", e);
         }
     }
 }

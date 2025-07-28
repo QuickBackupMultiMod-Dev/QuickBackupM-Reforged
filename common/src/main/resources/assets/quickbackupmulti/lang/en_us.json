@@ -38,5 +38,7 @@
   "quickbackupmulti.show.fail": "Backup Not Found",
   "quickbackupmulti.permission.set": "Set §g%s§r permission to §3%s",
   "quickbackupmulti.permission.reload": "Reload permission config success",
-  "quickbackupmulti.restartmode.switch": "§aRestart mode§r switch to: §4§l%s§r"
+  "quickbackupmulti.restartmode.switch": "§aRestart mode§r switch to: §4§l%s§r",
+  "quickbackupmulti.rejoin.switch": "§aRejoin mode§r switch to: §4§l%s§r",
+  "quickbackupmulti.toast.end_title": "Restore Finish!"
 }

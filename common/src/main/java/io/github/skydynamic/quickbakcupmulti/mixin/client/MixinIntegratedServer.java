@@ -1,31 +1,25 @@
-package io.github.skydynamic.quickbakcupmulti.mixin;
+package io.github.skydynamic.quickbakcupmulti.mixin.client;
 
 import com.mojang.datafixers.DataFixer;
-import io.github.skydynamic.increment.storage.lib.database.Database;
-import io.github.skydynamic.increment.storage.lib.utils.StorageManager;
-import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
-import io.github.skydynamic.quickbakcupmulti.database.DatabaseManager;
 import io.github.skydynamic.quickbakcupmulti.event.OnLoadedWorldHandler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
 import net.minecraft.server.WorldStem;
-import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.level.progress.ChunkProgressListenerFactory;
 import net.minecraft.server.packs.repository.PackRepository;
-import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.net.Proxy;
-import java.util.UUID;
 
-@Mixin(DedicatedServer.class)
-public abstract class MixinMinecraftServer extends MinecraftServer {
-    public MixinMinecraftServer(
+@Mixin(net.minecraft.client.server.IntegratedServer.class)
+public abstract class MixinIntegratedServer extends MinecraftServer {
+    public MixinIntegratedServer(
         Thread thread, LevelStorageSource.LevelStorageAccess levelStorageAccess,
         PackRepository packRepository, WorldStem worldStem,
         Proxy proxy, DataFixer dataFixer, Services services,
@@ -38,23 +32,11 @@ public abstract class MixinMinecraftServer extends MinecraftServer {
         method = "initServer",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/server/dedicated/DedicatedServer;loadLevel()V",
+            target = "Lnet/minecraft/client/server/IntegratedServer;loadLevel()V",
             shift = At.Shift.AFTER
         )
     )
     private void onLoadLevel(CallbackInfoReturnable<Boolean> cir) {
-        DatabaseManager databaseManager = new DatabaseManager(
-            "QuickBakcupMulti",
-            QuickbakcupmultiReforged.getModConfig().getStoragePath(),
-            UUID.nameUUIDFromBytes("server".getBytes())
-        );
-        QuickbakcupmultiReforged.getModContainer().setCurrentSavePath(this.getWorldPath(LevelResource.ROOT));
-        QuickbakcupmultiReforged.setDatabase(new Database(databaseManager));
-        QuickbakcupmultiReforged.setManager(new StorageManager(QuickbakcupmultiReforged.getDatabase(), QuickbakcupmultiReforged.getModConfig()));
-        if (QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
-            DatabaseCache.updateStorageInfoCaches();
-        }
-
         OnLoadedWorldHandler.handler();
     }
 }

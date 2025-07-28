@@ -38,5 +38,7 @@
   "quickbackupmulti.show.fail": "槽位不存在",
   "quickbackupmulti.permission.set": "设置§g%s§r的权限为§3%s",
   "quickbackupmulti.permission.reload": "重载权限配置文件完成",
-  "quickbackupmulti.restartmode.switch": "重启方式切换为: §a%s"
+  "quickbackupmulti.restartmode.switch": "重启方式切换为: §a%s",
+  "quickbackupmulti.rejoin.switch": "§a存档自动重新加入§r切换为: §4§l%s§r",
+  "quickbackupmulti.toast.end_title": "回档完成"
 }

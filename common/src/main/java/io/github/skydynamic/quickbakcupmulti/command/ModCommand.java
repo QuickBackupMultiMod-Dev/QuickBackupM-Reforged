@@ -1,6 +1,8 @@
 package io.github.skydynamic.quickbakcupmulti.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import io.github.skydynamic.quickbakcupmulti.ModEnvType;
+import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.command.settings.SettingCommand;
 import lombok.Getter;
 import net.minecraft.commands.CommandSourceStack;
@@ -48,5 +50,13 @@ public class ModCommand {
             .then(SearchCommand.cmd)
             .then(ShowCommand.cmd)
         );
+    }
+
+    public static boolean serverOnly(CommandSourceStack stack) {
+        return QuickbakcupmultiReforged.getModContainer().getEnvType() == ModEnvType.SERVER;
+    }
+
+    public static boolean clientOnly(CommandSourceStack stack) {
+        return QuickbakcupmultiReforged.getModContainer().getEnvType() == ModEnvType.CLIENT;
     }
 }

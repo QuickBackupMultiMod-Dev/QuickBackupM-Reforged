@@ -4,6 +4,7 @@ import io.github.skydynamic.increment.storage.lib.database.Database;
 import io.github.skydynamic.increment.storage.lib.utils.StorageManager;
 import io.github.skydynamic.quickbakcupmulti.command.ModCommand;
 import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
+import io.github.skydynamic.quickbakcupmulti.database.DatabaseManager;
 import io.github.skydynamic.quickbakcupmulti.schedule.quartz.DisableQuartzInfoLogger;
 import io.github.skydynamic.quickbakcupmulti.translate.Translate;
 import io.github.skydynamic.quickbakcupmulti.utils.UpdateChecker;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.UUID;
 
 public final class QuickbakcupmultiReforged {
     public static final String MOD_ID = "quickbakcupmulti_reforged";
@@ -40,7 +42,9 @@ public final class QuickbakcupmultiReforged {
         modConfig.save();
         modContainer.setPermissionManager(new PermissionManager());
 
-        new UpdateChecker().start();
+        if (modConfig.isCheckUpdate()) {
+            new UpdateChecker().start();
+        }
 
         // Initialize Translate
         Translate.handleResourceReload(modConfig.getLang());
@@ -63,5 +67,22 @@ public final class QuickbakcupmultiReforged {
     public static String formatTimestamp(long timestamp) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(timestamp);
+    }
+
+    public static void setNewDataBase(String collectionName) {
+        QuickbakcupmultiReforged.getModContainer().setOriginalStoragePath(QuickbakcupmultiReforged.getModConfig().getStoragePath());
+
+        String appendFolder = (QuickbakcupmultiReforged.getModContainer().getEnvType() == ModEnvType.CLIENT) ? "/" + collectionName : "";
+        DatabaseManager databaseManager = new DatabaseManager(
+            "QuickBakcupMulti",
+            QuickbakcupmultiReforged.getModConfig().getStoragePath(),
+            UUID.nameUUIDFromBytes(collectionName.getBytes())
+        );
+
+        ModConfig modTempConfig = QuickbakcupmultiReforged.getModConfig().copy();
+
+        modTempConfig.setStoragePath(QuickbakcupmultiReforged.getModConfig().getStoragePath() + appendFolder);
+        QuickbakcupmultiReforged.setDatabase(new Database(databaseManager));
+        QuickbakcupmultiReforged.setManager(new StorageManager(QuickbakcupmultiReforged.getDatabase(), modTempConfig));
     }
 }

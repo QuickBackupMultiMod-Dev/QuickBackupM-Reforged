@@ -3,6 +3,7 @@ package io.github.skydynamic.quickbakcupmulti.command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.restore.RestoreTimer;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionType;
 import lombok.Getter;
@@ -17,7 +18,6 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,37 +50,25 @@ public class RestoreCommand {
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
                     .executes(it -> cancelRestore(it.getSource()));
 
-    private static class RestoreThread extends TimerTask {
-        private final Runnable executor;
-
-        public RestoreThread(Runnable executor) {
-            this.executor = executor;
-        }
-
-        @Override
-        public void run() {
-            ModCommand.getLogger().info("Restore thread started...");
-            executor.run();
-        }
-    }
-
     @Getter
     private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Object>> restoreDataMap = new ConcurrentHashMap<>();
 
     private static int restoreBackup(CommandSourceStack commandSource, String name) {
-        if (!QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
-            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
-            return 0;
-        }
-        ConcurrentHashMap<String, Object> restoreMap = new ConcurrentHashMap<>();
-        restoreMap.put("Slot", name);
-        restoreMap.put("Timer", new Timer());
-        restoreMap.put("Countdown", Executors.newSingleThreadScheduledExecutor());
-        synchronized (restoreDataMap) {
-            restoreDataMap.put("QBM", restoreMap);
-            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.confirm_hint")));
-            return 1;
-        }
+        new ModCommand.CmdExecuteThread(() -> {
+            if (!QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
+                commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
+                return;
+            }
+            ConcurrentHashMap<String, Object> restoreMap = new ConcurrentHashMap<>();
+            restoreMap.put("Slot", name);
+            restoreMap.put("Timer", new Timer());
+            restoreMap.put("Countdown", Executors.newSingleThreadScheduledExecutor());
+            synchronized (restoreDataMap) {
+                restoreDataMap.put("QBM", restoreMap);
+                commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.confirm_hint")));
+            }
+        }).start();
+        return 1;
     }
 
     private static void executeRestore(CommandSourceStack commandSource) {
@@ -122,14 +110,7 @@ public class RestoreCommand {
                         countdown.shutdown();
                     }
                 }, 0, 1, TimeUnit.SECONDS);
-                timer.schedule(new RestoreThread(() -> {
-                    restoreDataMap.clear();
-                    for (ServerPlayer player : players) {
-                        player.connection.disconnect(Component.literal("Server restore backup"));
-                    }
-                    QuickbakcupmultiReforged.getModContainer().setRestoringBackup(true);
-                    QuickbakcupmultiReforged.getServerManager().stopServer();
-                }), 10000);
+                timer.schedule(new RestoreTimer(QuickbakcupmultiReforged.getModContainer().getEnvType(), players), 10000);
             } else {
                 commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.confirm_restore.nothing_to_confirm")));
             }

@@ -12,7 +12,7 @@ public class DefaultDatabaseBackupRunnable implements Runnable {
     public void run() {
         Path storagePath = Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath());
         File databaseFile = storagePath.resolve("QuickBakcupMulti.mv.db").toFile();
-        File databaseBackupPath = storagePath.resolve("databaseBackup").toFile();
+        File databaseBackupPath = storagePath.resolve(QuickbakcupmultiReforged.getModContainer().getLevelId()).resolve("databaseBackup").toFile();
         if (!databaseBackupPath.exists()) {
             databaseBackupPath.mkdirs();
         }
