@@ -116,7 +116,7 @@ public class BackupManager {
                 String fileHash = entry.getKey();
                 String fileName = entry.getValue();
                 String hashStart = fileHash.substring(0, 2);
-                File hashFile = new File(QuickbakcupmultiReforged.getModConfig().getStoragePath(), "blogs/" + hashStart + "/" + fileHash);
+                File hashFile = getBackupPath().resolve("blogs/" + hashStart + "/" + fileHash).toFile();
                 File targetDir = savePath.resolve(fileName).toFile();
                 FileUtils.copyFile(hashFile, targetDir);
             }
@@ -127,7 +127,7 @@ public class BackupManager {
 
     public static void deleteWorld(String worldName) {
         try {
-            FileUtils.deleteDirectory(Path.of(QuickbakcupmultiReforged.getModConfig().getStoragePath()).resolve(worldName).toFile());
+            FileUtils.deleteDirectory(getBackupPath().toFile());
             DatabaseManager databaseManager = new DatabaseManager(
                 "QuickBakcupMulti",
                 QuickbakcupmultiReforged.getModConfig().getStoragePath(),

@@ -11,6 +11,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.loading.FMLPaths;
 
+@Mod(value = QuickbakcupmultiReforged.MOD_ID)
 public final class QuickbakcupmultiReforgedNeoForge {
     @Getter
     private static final ModContainer modContainer = new ModContainer();

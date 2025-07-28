@@ -23,7 +23,7 @@ side = "BOTH"
 [[dependencies.quickbakcupmulti_reforged]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21,)"
+versionRange = "[1.21, 1.21.5)"
 ordering = "NONE"
 side = "BOTH"
 

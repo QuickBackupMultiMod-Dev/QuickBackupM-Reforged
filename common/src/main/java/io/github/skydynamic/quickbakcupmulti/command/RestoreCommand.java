@@ -54,20 +54,18 @@ public class RestoreCommand {
     private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Object>> restoreDataMap = new ConcurrentHashMap<>();
 
     private static int restoreBackup(CommandSourceStack commandSource, String name) {
-        new ModCommand.CmdExecuteThread(() -> {
-            if (!QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
-                commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
-                return;
-            }
-            ConcurrentHashMap<String, Object> restoreMap = new ConcurrentHashMap<>();
-            restoreMap.put("Slot", name);
-            restoreMap.put("Timer", new Timer());
-            restoreMap.put("Countdown", Executors.newSingleThreadScheduledExecutor());
-            synchronized (restoreDataMap) {
-                restoreDataMap.put("QBM", restoreMap);
-                commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.confirm_hint")));
-            }
-        }).start();
+        if (!QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
+            return 0;
+        }
+        ConcurrentHashMap<String, Object> restoreMap = new ConcurrentHashMap<>();
+        restoreMap.put("Slot", name);
+        restoreMap.put("Timer", new Timer());
+        restoreMap.put("Countdown", Executors.newSingleThreadScheduledExecutor());
+        synchronized (restoreDataMap) {
+            restoreDataMap.put("QBM", restoreMap);
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.confirm_hint")));
+        }
         return 1;
     }
 
