@@ -62,10 +62,13 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       release: true
+      tag: ${{ needs.generate_release_info.outputs.tag_name }}
 
   build_alpha:
     if: ${{ !((github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true')) }}
     uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ needs.generate_release_info.outputs.tag_name }}
 
   release:
     needs:

@@ -7,6 +7,14 @@ plugins {
 ext {
     getVersionSuffix = {
         String versionSuffix = ""
+        if (System.getenv("BUILD_TAG") != null && !System.getenv("BUILD_TAG").isEmpty() && System.getenv("BUILD_RELEASE") != "true") {
+            versionSplit = System.getenv("BUILD_TAG").split("\\+")
+            versionPart = (versionSplit.length >= 2) ? versionSplit[1] : ""
+            if ((versionPart || !versionPart.isEmpty()) && versionPart.startsWith("alpha") || versionPart.startsWith("beta")) {
+                versionSuffix += "+" + versionPart
+            }
+            return versionSuffix
+        }
         if (System.getenv("BUILD_RELEASE") != "true") {
             String buildNumber = System.getenv("BUILD_ID")
             versionSuffix += buildNumber != null ? ("+build." + buildNumber) : "+snapshot"
