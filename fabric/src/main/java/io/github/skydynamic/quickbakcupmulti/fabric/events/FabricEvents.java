@@ -17,14 +17,14 @@ public class FabricEvents {
                 QuickbakcupmultiReforged.registerCommand();
             }
         );
-        ServerLifecycleEvents.SERVER_STOPPED.register(FabricEvents::onServerStoped);
+        ServerLifecycleEvents.SERVER_STOPPED.register(FabricEvents::onServerStopped);
     }
 
     private static void onServerStarted(MinecraftServer server) {
         QuickbakcupmultiReforged.setServerManager(new ServerManager(server));
     }
 
-    private static void onServerStoped(MinecraftServer server) {
+    private static void onServerStopped(MinecraftServer server) {
         OnServerStoppedHandler.handle();
     }
 }

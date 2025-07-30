@@ -23,7 +23,6 @@ import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
 public class ListBackupsUtils {
     private static final Logger logger = LoggerFactory.getLogger("Qbm-ListBackupsUtil");
-    private static final Path backupPath = BackupManager.getBackupPath();
     private static final int BACKUPS_PER_PAGE = 5;
 
     private static long getDirSize(File dir) {
@@ -112,7 +111,7 @@ public class ListBackupsUtils {
             return Component.literal(tr("quickbackupmulti.list_empty"));
         }
         int totalPage = getTotalPage(backupsInfoList);
-        File blogsDir = backupPath.resolve("blogs").toFile();
+        File blogsDir = BackupManager.getBackupPath().resolve("blogs").toFile();
         if (blogsDir.exists()) {
             totalBackupSizeB = getDirSize(blogsDir);
         }

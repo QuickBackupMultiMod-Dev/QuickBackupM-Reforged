@@ -19,18 +19,16 @@ public class CronUtils {
         }
     }
 
-    public static <T> Trigger buildTrigger(String name, ScheduleMode mode, T value, String jitter) {
+    public static <T> Trigger buildTrigger(String name, ScheduleMode mode, T value) {
         IllegalArgumentException buildException = new IllegalArgumentException("Schedule mode %s requires value of type %s, but got %s (value: %s)"
                                 .formatted(mode.name(), mode.type.getName(), value.getClass().getName(), value));
-        int jitterSeconds = DurationUtils.parseAndRandom(jitter);
         switch (mode) {
             case INTERVAL -> {
                 if (value instanceof Integer v) {
                     return TriggerBuilder.newTrigger()
                         .withIdentity(name)
                         .withSchedule(SimpleScheduleBuilder.simpleSchedule().withIntervalInSeconds(v).repeatForever())
-                        .startAt(new Date(System.currentTimeMillis() + v * 1000L + jitterSeconds * 1000L))
-                        .usingJobData("jitter", jitterSeconds)
+                        .startAt(new Date(System.currentTimeMillis() + v * 1000L))
                         .build();
                 } else {
                     QuickbakcupmultiReforged.logger.error("Failed to build schedule trigger", buildException);
@@ -45,8 +43,7 @@ public class CronUtils {
                     return TriggerBuilder.newTrigger()
                         .withIdentity(name)
                         .withSchedule(CronScheduleBuilder.cronSchedule(v))
-                        .startAt(new Date(getNextExecutionTime(v).getTime() + jitterSeconds * 1000L))
-                        .usingJobData("jitter", jitterSeconds)
+                        .startAt(new Date(getNextExecutionTime(v).getTime()))
                         .build();
                 } else {
                     QuickbakcupmultiReforged.logger.error("Failed to build schedule trigger", buildException);

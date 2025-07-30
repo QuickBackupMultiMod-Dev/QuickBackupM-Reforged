@@ -4,12 +4,16 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
-    "client.MixinClientPacketListener"
+    "client.MixinIntegratedServer",
+    "client.MixinWorldOpenFlows",
+    "client.MixinWorldSelectionListWorldListEntry"
   ],
-  "mixins": [
-    "MixinMinecraftServer"
+  "server": [
+    "MixinDedicatedServer"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+  ]
 }

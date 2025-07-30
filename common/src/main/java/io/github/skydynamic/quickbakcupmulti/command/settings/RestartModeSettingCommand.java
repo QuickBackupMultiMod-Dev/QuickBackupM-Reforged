@@ -2,6 +2,7 @@ package io.github.skydynamic.quickbakcupmulti.command.settings;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.command.ModCommand;
 import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -11,6 +12,7 @@ import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
 public class RestartModeSettingCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("auto-restart-mode")
+        .requires(ModCommand::serverOnly)
         .then(getCmdTree());
 
     public static LiteralArgumentBuilder<CommandSourceStack> getCmdTree() {

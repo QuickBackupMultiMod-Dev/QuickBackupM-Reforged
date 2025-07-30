@@ -10,5 +10,6 @@ public class SettingCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("setting")
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
         .then(LangSettingCommand.cmd)
-        .then(RestartModeSettingCommand.cmd);
+        .then(RestartModeSettingCommand.cmd)
+        .then(AutoReJoinSettingCommand.cmd);
 }
