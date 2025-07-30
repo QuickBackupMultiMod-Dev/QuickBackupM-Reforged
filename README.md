@@ -24,17 +24,17 @@ _✨ MC备份 / 回档模组 ✨_
 </div>
 
 > [!WARNING]  
-> v3与v2的数据库并不一致, 无法直接迁移, 并且目前仅支持`Server`侧  
+> v3与v2的数据库并不一致, 无法直接迁移
+> 
 > 数据库迁移可以使用 [这个工具](https://github.com/QuickBackupMultiMod-Dev/Qbm-DatabaseMerge/releases)
 
 > 当前Mod大版本为`v3`, 相比于`v2`, 使用了更高性能的数据库, 并且重构了项目结构与简化了代码
 > 
 > 本mod已支持\NeoForge/
-> 
-> 未来 v2 版本将会停止维护
 
 ## 本Mod优势
 - 支持回档自动重启服务器, 不再是只备份不回档
+- 客户端支持回档自动重进存档! 
 
 ## 使用方式
 > [!WARNING]  
@@ -44,6 +44,9 @@ _✨ MC备份 / 回档模组 ✨_
 
 将本mod放进`mods`文件夹即可
 
+## 配置说明
+详见 [配置说明](./docs/zh_cn/config.md)
+
 ## 指令
 `/qb` 或 `/quickbackupmulti`均可触发mod
 
@@ -51,7 +54,7 @@ _✨ MC备份 / 回档模组 ✨_
 - [x] 定时备份
 - [x] 无限槽位
 - [x] Hash对比并仅备份差异文件
-- [ ] 个性化设置
+- [x] 个性化设置
 
 ## 许可
 本项目遵循 [Apache-2.0 license](https://www.apache.org/licenses/LICENSE-2.0) 许可
