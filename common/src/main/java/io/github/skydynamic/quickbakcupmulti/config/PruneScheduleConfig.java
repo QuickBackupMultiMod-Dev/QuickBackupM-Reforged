@@ -7,4 +7,5 @@ import lombok.Getter;
 public class PruneScheduleConfig extends ScheduleConfig {
     public String timezoneOverride = null;
     public PbsConfig regularBackup = new PbsConfig();
+    public ScheduleConfig temporaryBackup = new ScheduleConfig();
 }

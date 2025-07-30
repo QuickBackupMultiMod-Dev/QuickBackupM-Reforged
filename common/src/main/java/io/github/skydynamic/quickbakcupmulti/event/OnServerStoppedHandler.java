@@ -10,6 +10,7 @@ public class OnServerStoppedHandler {
         ScheduleManager.clearAllSchedule();
         if (QuickbakcupmultiReforged.getModContainer().isRestoringBackup()) {
             if (QuickbakcupmultiReforged.getModContainer().getEnvType() == ModEnvType.SERVER) {
+                BackupManager.makeTempBackup();
                 BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup());
                 QuickbakcupmultiReforged.getModContainer().setRestoringBackup(false);
                 switch (QuickbakcupmultiReforged.getModConfig().getAutoRestartMode()) {

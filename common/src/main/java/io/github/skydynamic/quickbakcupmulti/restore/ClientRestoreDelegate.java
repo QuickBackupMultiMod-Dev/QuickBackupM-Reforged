@@ -1,54 +1,111 @@
 package io.github.skydynamic.quickbakcupmulti.restore;
 
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.client.screen.RestoreScreen;
 import io.github.skydynamic.quickbakcupmulti.translate.Translate;
 import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.GenericMessageScreen;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.LevelStorageSource;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientRestoreDelegate {
-    public void run() {
-        Minecraft minecraftClient = Minecraft.getInstance();
-        String levelId = QuickbakcupmultiReforged.getModContainer().getLevelId();
-        minecraftClient.execute(() -> {
-            minecraftClient.level.disconnect();
-            minecraftClient.disconnect(new GenericMessageScreen(Component.nullToEmpty("Restore backup")));
-            LevelStorageSource levelStorageSource = minecraftClient.getLevelSource();
+    private final RestoreScreen screen = new RestoreScreen(this::cancel);
+    private CompletableFuture<Void> restoreFuture = null;
+    private final AtomicBoolean isCancelled = new AtomicBoolean(false);
 
-            try (LevelStorageSource.LevelStorageAccess levelStorageAccess = levelStorageSource.createAccess(levelId)) {
-                levelStorageAccess.deleteLevel();
-            } catch (IOException e) {
-                QuickbakcupmultiReforged.logger.error("", e);
+    protected final Minecraft minecraftClient = Minecraft.getInstance();
+    String levelId = QuickbakcupmultiReforged.getModContainer().getLevelId();
+
+    public void run() {
+        long startTime = System.currentTimeMillis();
+        minecraftClient.executeBlocking(() -> {
+            minecraftClient.level.disconnect();
+            minecraftClient.disconnect(screen);
+        });
+
+        restoreFuture = CompletableFuture.runAsync(() -> {
+            screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.make_temp_backup"));
+            BackupManager.makeTempBackup();
+            screen.setProgress("5%");
+
+            screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.delete_origin_save"));
+            deleteWorld();
+            screen.setProgress("10%");
+
+            if (isCancelled.get()) {
+                handleCancellation();
+                return;
             }
 
-            CompletableFuture.runAsync(() -> {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup());
+            BackupManager.RestoreExtraRunnable extraRunnable = (totalProgress, currentProgress) -> {
+                screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.restoring_backup"));
+                int progress = (int) ((currentProgress / (double) totalProgress) * 0.9 * 100);
+                screen.setProgress(progress + "%");
+            };
+            BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup(), extraRunnable);
 
-                // Restore finish and rejoin the world
-                // TODO: show waiting restore screen exit button and lock the world util restore finish
-                QuickbakcupmultiReforged.getModContainer().setRestoringBackup(false);
-                minecraftClient.execute(() -> {
-                    Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_title"));
-                    SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, Component.empty());
-                });
-                if (QuickbakcupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
-                    minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().openWorld(levelId,
-                        () -> minecraftClient.setScreen(null)));
-                } else {
-                    minecraftClient.execute(() -> minecraftClient.setScreen(null));
-                }
+            if (isCancelled.get()) {
+                handleCancellation();
+                return;
+            }
+
+            // Restore finish and rejoin the world
+            QuickbakcupmultiReforged.getModContainer().setRestoringBackup(false);
+            long end_time = System.currentTimeMillis();
+            minecraftClient.execute(() -> {
+                Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_title"));
+                Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_desc", (int) (end_time - startTime * 1000)));
+                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
             });
-        });
+            if (QuickbakcupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
+                minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().openWorld(levelId,
+                    () -> minecraftClient.setScreen(null)));
+            } else {
+                minecraftClient.execute(() -> minecraftClient.setScreen(null));
+            }
+        }, Executors.newSingleThreadExecutor());
+    }
+
+    private void handleCancellation() {
+        try {
+            screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.delete_origin_save"));
+            deleteWorld();
+            screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.restore_temp_backup"));
+            BackupManager.restoreBackup("restore_temp");
+            minecraftClient.execute(() -> {
+                Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.cancel_success"));
+                Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.cancel_success.desc"));
+                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
+                minecraftClient.setScreen(null);
+            });
+        } catch (Exception e) {
+            QuickbakcupmultiReforged.logger.error("Error during cancellation", e);
+        }
+    }
+
+    public void cancel(Button button) {
+        isCancelled.set(true);
+
+        if (button != null) {
+            screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.cancel"));
+            button.active = false;
+        }
+
+        QuickbakcupmultiReforged.getModContainer().setRestoringBackup(false);
+    }
+
+    private void deleteWorld() {
+        try(LevelStorageSource.LevelStorageAccess levelStorageSource = minecraftClient.getLevelSource().createAccess(levelId)) {
+            levelStorageSource.deleteLevel();
+        } catch (IOException e) {
+            QuickbakcupmultiReforged.logger.error("Error during delete level", e);
+        }
     }
 }

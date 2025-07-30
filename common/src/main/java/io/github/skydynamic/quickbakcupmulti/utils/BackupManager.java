@@ -99,6 +99,14 @@ public class BackupManager {
         }
     }
 
+    public static void makeTempBackup() {
+        QuickbakcupmultiReforged.logger.info("Make a temp backup...");
+        QuickbakcupmultiReforged.getManager().incrementalStorageTemp(
+            QuickbakcupmultiReforged.getModContainer().getCurrentSavePath().toFile(), fileFilter, folderFilter
+        );
+        QuickbakcupmultiReforged.logger.info("Make a temp backup success.");
+    }
+
     public static boolean deleteBackup(CommandSourceStack commandSource, String name) {
         if (QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
             QuickbakcupmultiReforged.getManager().deleteStorage(name);
@@ -108,21 +116,37 @@ public class BackupManager {
         }
     }
 
-    public static void restoreBackup(String name) {
+    public static void restoreBackup(String name, RestoreExtraRunnable extraRunnable) {
         Map<String, String> hashMap = QuickbakcupmultiReforged.getDatabase().getFileHashMap(name);
         Path savePath = QuickbakcupmultiReforged.getModContainer().getCurrentSavePath();
         try {
+            int index = 0;
             for (Map.Entry<String, String> entry : hashMap.entrySet()) {
                 String fileHash = entry.getKey();
                 String fileName = entry.getValue();
-                String hashStart = fileHash.substring(0, 2);
-                File hashFile = getBackupPath().resolve("blogs/" + hashStart + "/" + fileHash).toFile();
+                File hashFile;
+                if (fileHash.startsWith("blog_temp")) {
+                    hashFile = getBackupPath().resolve("blogs_temp").resolve(fileHash).toFile();
+                } else {
+                    String hashStart = fileHash.substring(0, 2);
+                    hashFile = getBackupPath().resolve("blogs").resolve(hashStart).resolve(fileHash).toFile();
+                }
                 File targetDir = savePath.resolve(fileName).toFile();
                 FileUtils.copyFile(hashFile, targetDir);
+
+                index++;
+
+                if (extraRunnable != null) {
+                    extraRunnable.execute(hashMap.size(), index);
+                }
             }
         } catch (IOException e) {
             logger.error("Restore Failed", e);
         }
+    }
+
+    public static void restoreBackup(String name) {
+        restoreBackup(name, null);
     }
 
     public static void deleteWorld(String worldName) {
@@ -142,5 +166,10 @@ public class BackupManager {
         } catch (IOException e) {
             QuickbakcupmultiReforged.logger.error("Delete Failed", e);
         }
+    }
+
+    @FunctionalInterface
+    public interface RestoreExtraRunnable {
+        void execute(int totalProgress, int currentProgress);
     }
 }
