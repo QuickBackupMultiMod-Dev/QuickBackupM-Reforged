@@ -77,7 +77,6 @@ public class ModConfig implements IConfig {
 
         newStorage.checkUpdate = this.config.checkUpdate;
         newStorage.lang = this.config.lang;
-        newStorage.maxScheduleBackup = this.config.maxScheduleBackup;
         newStorage.autoRestartMode = this.config.autoRestartMode;
         newStorage.clientAutoReJoinWorld = this.config.clientAutoReJoinWorld;
         newStorage.storagePath = this.config.storagePath;
@@ -147,10 +146,6 @@ public class ModConfig implements IConfig {
         save();
     }
 
-    public int getMaxScheduleBackup() {
-        return config.maxScheduleBackup;
-    }
-
     public AutoRestartMode getAutoRestartMode() {
         return config.autoRestartMode;
     }
@@ -208,7 +203,6 @@ public class ModConfig implements IConfig {
         private ArrayList<String> ignoredFiles = new ArrayList<>();
         private ArrayList<String> ignoredFolders = new ArrayList<>();
         private String lang = "zh_cn";
-        private int maxScheduleBackup = 10;
 
         private AutoRestartMode autoRestartMode = AutoRestartMode.DEFAULT;
         private boolean clientAutoReJoinWorld = true;
@@ -229,7 +223,6 @@ public class ModConfig implements IConfig {
                     ", ignoredFiles=" + ignoredFiles +
                     ", ignoredFolders=" + ignoredFolders +
                     ", lang='" + lang + '\'' +
-                    ", maxScheduleBackup=" + maxScheduleBackup +
                     ", autoRestartMode=" + autoRestartMode +
                     ", clientAutoReJoinWorld=" + clientAutoReJoinWorld +
                     ", storagePath='" + storagePath + '\'' +
