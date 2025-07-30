@@ -38,5 +38,18 @@
   "quickbackupmulti.show.fail": "Backup Not Found",
   "quickbackupmulti.permission.set": "Set §g%s§r permission to §3%s",
   "quickbackupmulti.permission.reload": "Reload permission config success",
-  "quickbackupmulti.restartmode.switch": "§aRestart mode§r switch to: §4§l%s§r"
+  "quickbackupmulti.restartmode.switch": "§aRestart mode§r switch to: §4§l%s§r",
+  "quickbackupmulti.rejoin.switch": "§aRejoin mode§r switch to: §4§l%s§r",
+  "quickbackupmulti.toast.end_title": "Restore Finish!",
+  "quickbackupmulti.toast.end_desc": "Total time: %ss",
+  "quickbackupmulti.toast.cancel_success": "Restore task cancelled successfully",
+  "quickbackupmulti.toast.cancel_success.desc": "Your save has been restored to before the restore",
+  "quickbackupmulti.restoring_backup.state.make_temp_backup": "Creating temporary backup...",
+  "quickbackupmulti.restoring_backup.state.delete_origin_save": "Deleting original save...",
+  "quickbackupmulti.restoring_backup.state.restoring_backup": "Restoring backup...",
+  "quickbackupmulti.restoring_backup.state.restore_temp_backup": "Restoring save from before backup execution...",
+  "quickbackupmulti.restoring_backup.state.cancel": "Cancelling restore backup...",
+  "quickbackupmulti.screen.restore_screen.title": "Restore Visualization Screen",
+  "quickbackupmulti.screen.restore_screen.progress": "Progress: ",
+  "quickbackupmulti.screen.restore_screen.cancel_button": "Cancel"
 }

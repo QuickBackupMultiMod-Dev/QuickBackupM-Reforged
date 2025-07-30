@@ -12,19 +12,46 @@ import java.time.ZoneId;
 import java.util.*;
 
 public class DefaultPruneRunnable implements Runnable {
+    private final PruneScheduleConfig config;
+    private final PruneRunnable executor;
+
+    public final static DefaultPruneRunnable PRUNE_REGULAR_BACKUP_RUNNABLE = new DefaultPruneRunnable(
+        QuickbakcupmultiReforged.getModConfig().getPruneScheduleConfig(),
+        DefaultPruneRunnable::defaultPruneRegularBackup
+    );
+
+    public final static DefaultPruneRunnable PRUNE_TEMPORARY_BACKUP_RUNNABLE = new DefaultPruneRunnable(
+        QuickbakcupmultiReforged.getModConfig().getPruneScheduleConfig(),
+        DefaultPruneRunnable::defaultPruneTemporaryBackup
+    );
+
+    public DefaultPruneRunnable(PruneScheduleConfig config, PruneRunnable executor) {
+        this.config = config;
+        this.executor = executor;
+    }
+
     @Override
     public void run() {
-        PruneScheduleConfig pruneScheduleConfig = QuickbakcupmultiReforged.getModConfig().getPruneScheduleConfig();
         CommandSourceStack commandSourceStack = QuickbakcupmultiReforged.getServerManager().getCommandSource();
 
+        executor.execute(config, commandSourceStack);
+    }
+
+    private static void defaultPruneRegularBackup(PruneScheduleConfig config, CommandSourceStack commandSourceStack) {
         List<StorageInfo> backupList = QuickbakcupmultiReforged.getDatabase().getAllStorageInfo();
-        List<StorageInfo> toDelete = filterBackupWithPbs(pruneScheduleConfig.getRegularBackup(), backupList, pruneScheduleConfig.getTimezoneOverride());
+        List<StorageInfo> toDelete = filterBackupWithPbs(config.getRegularBackup(), backupList, config.getTimezoneOverride());
         toDelete.forEach(backup -> BackupManager.deleteBackup(commandSourceStack, backup.getName()));
 
         QuickbakcupmultiReforged.logger.info("Prune backup: {}", toDelete.size());
     }
 
-    private List<StorageInfo> filterBackupWithPbs(PbsConfig pbsConfig, List<StorageInfo> backupList, String timezoneOverride) {
+    private static void defaultPruneTemporaryBackup(PruneScheduleConfig config, CommandSourceStack commandSourceStack) {
+        QuickbakcupmultiReforged.getManager().deleteTempStorage();
+
+        QuickbakcupmultiReforged.logger.info("Prune temporary backup success");
+    }
+
+    private static List<StorageInfo> filterBackupWithPbs(PbsConfig pbsConfig, List<StorageInfo> backupList, String timezoneOverride) {
         if (pbsConfig == null || !pbsConfig.isEnabled() || backupList == null || backupList.isEmpty()) {
             return new ArrayList<>();
         }
@@ -87,5 +114,10 @@ public class DefaultPruneRunnable implements Runnable {
         }
 
         return toDelete;
+    }
+
+    @FunctionalInterface
+    public interface PruneRunnable {
+        void execute(PruneScheduleConfig config, CommandSourceStack commandSourceStack);
     }
 }

@@ -41,7 +41,6 @@ public class UpdateChecker extends Thread {
 
             if (release != null) {
                 ModVersion releaseVersion = new ModVersion(release.get("tag_name").getAsString());
-                System.out.println(releaseVersion);
                 if (releaseVersion.isNewerThan(currentVersion)) {
                     QuickbakcupmultiReforged.logger.info("New version available: {}", releaseVersion);
                     QuickbakcupmultiReforged.logger.info("Download link: {}", release.get("html_url").getAsString());

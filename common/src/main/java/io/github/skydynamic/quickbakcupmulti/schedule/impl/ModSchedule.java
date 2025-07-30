@@ -14,7 +14,6 @@ public class ModSchedule implements IModSchedule, Job {
 
     private String crontab;
     private Integer interval;
-    private String jitter;
 
     private Runnable executor;
 
@@ -27,16 +26,14 @@ public class ModSchedule implements IModSchedule, Job {
     public ModSchedule() {
     }
 
-    public ModSchedule(String identity, Integer interval, String jitter) {
+    public ModSchedule(String identity, Integer interval) {
         this.identity = identity;
         this.interval = interval;
-        this.jitter = jitter;
     }
 
-    public ModSchedule(String identity, String crontab, String jitter) {
+    public ModSchedule(String identity, String crontab) {
         this.identity = identity;
         this.crontab = crontab;
-        this.jitter = jitter;
     }
 
     @Override
@@ -50,9 +47,9 @@ public class ModSchedule implements IModSchedule, Job {
         StdSchedulerFactory sf = new StdSchedulerFactory();
 
         if (crontab != null && !crontab.isEmpty() && interval == null) {
-            trigger = buildTrigger(identity, CronUtils.ScheduleMode.CRONTAB, crontab, jitter);
+            trigger = buildTrigger(identity, CronUtils.ScheduleMode.CRONTAB, crontab);
         } else if (interval != null && interval > 0 && crontab == null) {
-            trigger = buildTrigger(identity, CronUtils.ScheduleMode.INTERVAL, interval, jitter);
+            trigger = buildTrigger(identity, CronUtils.ScheduleMode.INTERVAL, interval);
         } else {
             return false;
         }
@@ -99,9 +96,7 @@ public class ModSchedule implements IModSchedule, Job {
 
     @Override
     public long getNextExecuteTime() {
-        JobDataMap dataMap = trigger.getJobDataMap();
-        int jitter = dataMap.getInt("jitter");
-        return trigger.getNextFireTime().getTime() + jitter * 1000L;
+        return trigger.getNextFireTime().getTime();
     }
 
     @Override
@@ -115,21 +110,12 @@ public class ModSchedule implements IModSchedule, Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
-        JobDataMap dataMap = jobExecutionContext.getMergedJobDataMap();
-        int jitter = dataMap.getInt("jitter");
-
-        try {
-            Thread.sleep(jitter * 1000L);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
         QuickbakcupmultiReforged.logger.info("Schedule {} execute in {}", identity, QuickbakcupmultiReforged.formatTimestamp(System.currentTimeMillis()));
         executor.run();
         QuickbakcupmultiReforged.logger.info(
             "Schedule {} execute done, next execute time: {}",
             identity,
-            QuickbakcupmultiReforged.formatTimestamp(jobExecutionContext.getTrigger().getNextFireTime().getTime() + jitter * 1000L)
+            QuickbakcupmultiReforged.formatTimestamp(jobExecutionContext.getTrigger().getNextFireTime().getTime())
         );
     }
 }

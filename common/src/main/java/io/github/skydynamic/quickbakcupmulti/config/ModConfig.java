@@ -53,6 +53,11 @@ public class ModConfig implements IConfig {
     }
 
     public boolean load() {
+        if (path == null) {
+            logger.error("Config Path is null");
+            return false;
+        }
+
         if (!Files.exists(path)) {
             return save();
         }
@@ -64,6 +69,57 @@ public class ModConfig implements IConfig {
             return false;
         }
         return true;
+    }
+
+    public ModConfig copy() {
+        ModConfig newConfig = new ModConfig(this.path);
+        ConfigStorage newStorage = new ConfigStorage();
+
+        newStorage.checkUpdate = this.config.checkUpdate;
+        newStorage.lang = this.config.lang;
+        newStorage.maxScheduleBackup = this.config.maxScheduleBackup;
+        newStorage.autoRestartMode = this.config.autoRestartMode;
+        newStorage.clientAutoReJoinWorld = this.config.clientAutoReJoinWorld;
+        newStorage.storagePath = this.config.storagePath;
+        newStorage.cacheDatabase = this.config.cacheDatabase;
+
+        newStorage.ignoredFiles = new ArrayList<>(this.config.ignoredFiles);
+        newStorage.ignoredFolders = new ArrayList<>(this.config.ignoredFolders);
+
+        newStorage.scheduleBackup = new ScheduleBackupConfig();
+        newStorage.scheduleBackup.enabled = this.config.scheduleBackup.enabled;
+        newStorage.scheduleBackup.interval = this.config.scheduleBackup.interval;
+        newStorage.scheduleBackup.crontab = this.config.scheduleBackup.crontab;
+        newStorage.scheduleBackup.resetTimerOnBackup = this.config.scheduleBackup.resetTimerOnBackup;
+        newStorage.scheduleBackup.requireOnlinePlayers = this.config.scheduleBackup.requireOnlinePlayers;
+        newStorage.scheduleBackup.requireOnlinePlayersIgnoreCarpetFakePlayer = this.config.scheduleBackup.requireOnlinePlayersIgnoreCarpetFakePlayer;
+        newStorage.scheduleBackup.requireOnlinePlayersBlacklist = this.config.scheduleBackup.requireOnlinePlayersBlacklist;
+
+        newStorage.prune = new PruneScheduleConfig();
+        newStorage.prune.enabled = this.config.prune.enabled;
+        newStorage.prune.interval = this.config.prune.interval;
+        newStorage.prune.crontab = this.config.prune.crontab;
+        newStorage.prune.timezoneOverride = this.config.prune.timezoneOverride;
+
+        newStorage.prune.regularBackup = new PbsConfig();
+        newStorage.prune.regularBackup.enabled = this.config.prune.regularBackup.enabled;
+        newStorage.prune.regularBackup.maxAmount = this.config.prune.regularBackup.maxAmount;
+        newStorage.prune.regularBackup.maxLifeTime = this.config.prune.regularBackup.maxLifeTime;
+        newStorage.prune.regularBackup.last = this.config.prune.regularBackup.last;
+        newStorage.prune.regularBackup.hour = this.config.prune.regularBackup.hour;
+        newStorage.prune.regularBackup.day = this.config.prune.regularBackup.day;
+        newStorage.prune.regularBackup.week = this.config.prune.regularBackup.week;
+        newStorage.prune.regularBackup.month = this.config.prune.regularBackup.month;
+        newStorage.prune.regularBackup.year = this.config.prune.regularBackup.year;
+
+        newStorage.database = new DatabaseConfig();
+        newStorage.database.backup = new ScheduleConfig();
+        newStorage.database.backup.enabled = this.config.database.backup.enabled;
+        newStorage.database.backup.interval = this.config.database.backup.interval;
+        newStorage.database.backup.crontab = this.config.database.backup.crontab;
+
+        newConfig.setConfig(newStorage);
+        return newConfig;
     }
 
     public boolean isCheckUpdate() {
@@ -88,6 +144,7 @@ public class ModConfig implements IConfig {
 
     public void setLang(String lang) {
         config.lang = lang;
+        save();
     }
 
     public int getMaxScheduleBackup() {
@@ -100,6 +157,16 @@ public class ModConfig implements IConfig {
 
     public void setAutoRestartMode(AutoRestartMode autoRestartMode) {
         config.autoRestartMode = autoRestartMode;
+        save();
+    }
+
+    public boolean isClientAutoReJoinWorld() {
+        return config.clientAutoReJoinWorld;
+    }
+
+    public void setClientAutoReJoinWorld(boolean clientAutoReJoinWorld) {
+        config.clientAutoReJoinWorld = clientAutoReJoinWorld;
+        save();
     }
 
     public boolean isCacheDatabase() {
@@ -123,6 +190,10 @@ public class ModConfig implements IConfig {
         return config.storagePath;
     }
 
+    public void setStoragePath(String storagePath) {
+        config.storagePath = storagePath;
+    }
+
     public enum AutoRestartMode {
         DISABLE,
         DEFAULT,
@@ -140,6 +211,7 @@ public class ModConfig implements IConfig {
         private int maxScheduleBackup = 10;
 
         private AutoRestartMode autoRestartMode = AutoRestartMode.DEFAULT;
+        private boolean clientAutoReJoinWorld = true;
 
         private String storagePath = "./QuickBackupMulti";
         private boolean cacheDatabase = false;
@@ -159,6 +231,7 @@ public class ModConfig implements IConfig {
                     ", lang='" + lang + '\'' +
                     ", maxScheduleBackup=" + maxScheduleBackup +
                     ", autoRestartMode=" + autoRestartMode +
+                    ", clientAutoReJoinWorld=" + clientAutoReJoinWorld +
                     ", storagePath='" + storagePath + '\'' +
                     ", cacheDatabase=" + cacheDatabase +
                     ", scheduleBackup=" + scheduleBackup +

@@ -5,6 +5,5 @@ import lombok.Getter;
 @SuppressWarnings("FieldMayBeFinal")
 @Getter
 public class DatabaseConfig {
-    private ScheduleConfig backup = new ScheduleConfig();
-
+    public ScheduleConfig backup = new ScheduleConfig();
 }

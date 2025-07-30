@@ -9,13 +9,13 @@ public class ScheduleManager {
         QuickbakcupmultiReforged.logger.info("Register schedule: {}", schedule.getName());
     }
 
-    public static void registerSchedule(String name, String crontab, String jitter, Runnable executor) {
-        ModSchedule schedule = new ModSchedule(name, crontab, jitter).setExcutor(executor);
+    public static void registerSchedule(String name, String crontab, Runnable executor) {
+        ModSchedule schedule = new ModSchedule(name, crontab).setExcutor(executor);
         registerSchedule(schedule);
     }
 
-    public static void registerSchedule(String name, int interval, String jitter, Runnable executor) {
-        ModSchedule schedule = new ModSchedule(name, interval, jitter).setExcutor(executor);
+    public static void registerSchedule(String name, int interval, Runnable executor) {
+        ModSchedule schedule = new ModSchedule(name, interval).setExcutor(executor);
         registerSchedule(schedule);
     }
 

@@ -16,6 +16,10 @@ import java.util.Optional;
 @Getter
 public class ModContainer {
     private ModVersion modVersion;
+    private ModEnvType envType;
+
+    private String originalStoragePath;
+    private String levelId = "";
 
     private CommandDispatcher<CommandSourceStack> dispatcher;
     private Path configPath;

@@ -8,6 +8,7 @@ import io.github.skydynamic.quickbakcupmulti.schedule.ScheduleManager;
 import io.github.skydynamic.quickbakcupmulti.schedule.runnables.DefaultDatabaseBackupRunnable;
 import io.github.skydynamic.quickbakcupmulti.schedule.runnables.DefaultPruneRunnable;
 import io.github.skydynamic.quickbakcupmulti.schedule.runnables.DefaultScheduleBackupRunnable;
+import io.github.skydynamic.quickbakcupmulti.utils.DurationUtils;
 
 public class OnLoadedWorldHandler {
     public static void handler() {
@@ -16,9 +17,10 @@ public class OnLoadedWorldHandler {
         if (databaseBackupConfig.enabled) {
             Runnable databaseBackupRunnable = new DefaultDatabaseBackupRunnable();
             if (databaseBackupConfig.interval != null) {
-                ScheduleManager.registerSchedule("databaseSchedule", databaseBackupConfig.interval, databaseBackupConfig.jitter, databaseBackupRunnable);
+                int interval = (int) DurationUtils.parseDurationToSeconds(databaseBackupConfig.interval);
+                ScheduleManager.registerSchedule("databaseSchedule", interval, databaseBackupRunnable);
             } else if (databaseBackupConfig.crontab != null) {
-                ScheduleManager.registerSchedule("databaseSchedule", databaseBackupConfig.crontab, databaseBackupConfig.jitter, databaseBackupRunnable);
+                ScheduleManager.registerSchedule("databaseSchedule", databaseBackupConfig.crontab, databaseBackupRunnable);
             }
         }
 
@@ -27,20 +29,39 @@ public class OnLoadedWorldHandler {
         if (scheduleBackupConfig.enabled) {
             Runnable scheduleBackupRunnable = new DefaultScheduleBackupRunnable();
             if (scheduleBackupConfig.interval != null) {
-                ScheduleManager.registerSchedule("scheduleBackup", scheduleBackupConfig.interval, scheduleBackupConfig.jitter, scheduleBackupRunnable);
+                int interval = (int) DurationUtils.parseDurationToSeconds(scheduleBackupConfig.interval);
+                ScheduleManager.registerSchedule("scheduleBackup", databaseBackupConfig.interval, scheduleBackupRunnable);
             } else if (scheduleBackupConfig.crontab != null) {
-                ScheduleManager.registerSchedule("scheduleBackup", scheduleBackupConfig.crontab, scheduleBackupConfig.jitter, scheduleBackupRunnable);
+                ScheduleManager.registerSchedule("scheduleBackup", scheduleBackupConfig.crontab, scheduleBackupRunnable);
             }
         }
 
         // Prune schedule
         PruneScheduleConfig pruneScheduleConfig = QuickbakcupmultiReforged.getModConfig().getPruneScheduleConfig();
         if (pruneScheduleConfig.enabled) {
-            Runnable pruneRunnable = new DefaultPruneRunnable();
+            Runnable pruneRunnable = DefaultPruneRunnable.PRUNE_REGULAR_BACKUP_RUNNABLE;
             if (pruneScheduleConfig.interval != null) {
-                ScheduleManager.registerSchedule("pruneSchedule", pruneScheduleConfig.interval, pruneScheduleConfig.jitter, pruneRunnable);
+                int interval = (int) DurationUtils.parseDurationToSeconds(pruneScheduleConfig.interval);
+                ScheduleManager.registerSchedule("pruneSchedule", interval, pruneRunnable);
             } else if (pruneScheduleConfig.crontab != null) {
-                ScheduleManager.registerSchedule("pruneSchedule", pruneScheduleConfig.crontab, pruneScheduleConfig.jitter, pruneRunnable);
+                ScheduleManager.registerSchedule("pruneSchedule", pruneScheduleConfig.crontab, pruneRunnable);
+            }
+
+            // Prune temporary backup
+            if (pruneScheduleConfig.getTemporaryBackup().enabled) {
+                Runnable pruneTemporaryBackupRunnable = DefaultPruneRunnable.PRUNE_TEMPORARY_BACKUP_RUNNABLE;
+                if (pruneScheduleConfig.getTemporaryBackup().interval != null) {
+                    int interval = (int) DurationUtils.parseDurationToSeconds(pruneScheduleConfig.getTemporaryBackup().interval);
+                    ScheduleManager.registerSchedule(
+                        "pruneTemporaryBackupSchedule",
+                        interval,
+                        pruneTemporaryBackupRunnable);
+                } else if (pruneScheduleConfig.getTemporaryBackup().crontab != null) {
+                    ScheduleManager.registerSchedule(
+                        "pruneTemporaryBackupSchedule",
+                        pruneScheduleConfig.getTemporaryBackup().crontab,
+                        pruneTemporaryBackupRunnable);
+                }
             }
         }
 

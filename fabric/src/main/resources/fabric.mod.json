@@ -15,7 +15,7 @@
   "accessWidener": "qbm.accesswidener",
   "environment": "*",
   "entrypoints": {
-    "server": [
+    "main": [
       "io.github.skydynamic.quickbakcupmulti.fabric.QuickbakcupmultiReforgedFabric"
     ],
     "client": [

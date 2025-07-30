@@ -38,5 +38,18 @@
   "quickbackupmulti.show.fail": "槽位不存在",
   "quickbackupmulti.permission.set": "设置§g%s§r的权限为§3%s",
   "quickbackupmulti.permission.reload": "重载权限配置文件完成",
-  "quickbackupmulti.restartmode.switch": "重启方式切换为: §a%s"
+  "quickbackupmulti.restartmode.switch": "重启方式切换为: §a%s",
+  "quickbackupmulti.rejoin.switch": "§a存档自动重新加入§r切换为: §4§l%s§r",
+  "quickbackupmulti.toast.end_title": "回档完成",
+  "quickbackupmulti.toast.end_desc": "总耗时: %ss",
+  "quickbackupmulti.toast.cancel_success": "成功取消回档任务",
+  "quickbackupmulti.toast.cancel_success.desc": "您的存档已恢复到回档前",
+  "quickbackupmulti.restoring_backup.state.make_temp_backup": "正在生成临时备份...",
+  "quickbackupmulti.restoring_backup.state.delete_origin_save": "正在删除原存档...",
+  "quickbackupmulti.restoring_backup.state.restoring_backup": "正在回档...",
+  "quickbackupmulti.restoring_backup.state.restore_temp_backup": "正在还原执行备份前的存档...",
+  "quickbackupmulti.restoring_backup.state.cancel": "正在取消还原备份...",
+  "quickbackupmulti.screen.restore_screen.title": "回档可视化页面",
+  "quickbackupmulti.screen.restore_screen.progress": "进度: ",
+  "quickbackupmulti.screen.restore_screen.cancel_button": "取消"
 }

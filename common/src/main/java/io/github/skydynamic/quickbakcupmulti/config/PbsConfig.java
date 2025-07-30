@@ -5,13 +5,13 @@ import lombok.Getter;
 @SuppressWarnings("FieldMayBeFinal")
 @Getter
 public class PbsConfig {
-    private boolean enabled = false;
-    private Integer maxAmount = 10;
-    private String maxLifeTime = "0s";
-    private int last = -1;
-    private int hour = 0;
-    private int day = 0;
-    private int week = 0;
-    private int month = 1;
-    private int year = 0;
+    public boolean enabled = false;
+    public Integer maxAmount = 10;
+    public String maxLifeTime = "0s";
+    public int last = -1;
+    public int hour = 0;
+    public int day = 0;
+    public int week = 0;
+    public int month = 1;
+    public int year = 0;
 }
