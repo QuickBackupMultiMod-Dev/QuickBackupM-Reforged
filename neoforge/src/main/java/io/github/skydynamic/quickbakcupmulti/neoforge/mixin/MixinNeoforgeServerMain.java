@@ -1,6 +1,6 @@
 package io.github.skydynamic.quickbakcupmulti.neoforge.mixin;
 
-import io.github.skydynamic.quickbakcupmulti.neoforge.QuickbakcupmultiReforgedNeoForge;
+import io.github.skydynamic.quickbakcupmulti.neoforge.QuickbackupmultiReforgedNeoForge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,6 +13,6 @@ public class MixinNeoforgeServerMain {
         at = @At("HEAD")
     )
     private static void injectServerMain(String[] strings, CallbackInfo ci) {
-        QuickbakcupmultiReforgedNeoForge.setBoostArgs(strings);
+        QuickbackupmultiReforgedNeoForge.setBoostArgs(strings);
     }
 }

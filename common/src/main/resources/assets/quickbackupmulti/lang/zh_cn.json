@@ -50,6 +50,7 @@
   "quickbackupmulti.restoring_backup.state.restore_temp_backup": "正在还原执行备份前的存档...",
   "quickbackupmulti.restoring_backup.state.cancel": "正在取消还原备份...",
   "quickbackupmulti.screen.restore_screen.title": "回档可视化页面",
-  "quickbackupmulti.screen.restore_screen.progress": "进度: ",
+  "quickbackupmulti.screen.restore_screen.waiting_for_server": "等待服务器关闭",
+  "quickbackupmulti.screen.restore_screen.progress": "进度: %s",
   "quickbackupmulti.screen.restore_screen.cancel_button": "取消"
 }
