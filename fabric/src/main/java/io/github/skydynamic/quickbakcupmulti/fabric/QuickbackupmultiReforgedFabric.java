@@ -6,12 +6,11 @@ import io.github.skydynamic.quickbakcupmulti.fabric.events.FabricEvents;
 import io.github.skydynamic.quickbakcupmulti.ModContainer;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import lombok.Getter;
-import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 
-public final class QuickbakcupmultiReforgedFabric implements ModInitializer {
+public final class QuickbackupmultiReforgedFabric implements ModInitializer {
     @Getter
     private static final ModContainer modContainer = new ModContainer();
 
