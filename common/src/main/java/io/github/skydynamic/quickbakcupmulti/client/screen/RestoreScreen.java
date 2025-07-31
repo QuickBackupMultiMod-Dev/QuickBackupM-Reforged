@@ -15,12 +15,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
 import org.joml.Matrix4f;
-
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
 
 public class RestoreScreen extends Screen {
     private final Button cancelButton;
