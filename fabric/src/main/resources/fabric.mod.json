@@ -16,7 +16,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "io.github.skydynamic.quickbakcupmulti.fabric.QuickbakcupmultiReforgedFabric"
+      "io.github.skydynamic.quickbakcupmulti.fabric.QuickbackupmultiReforgedFabric"
     ],
     "client": [
       "io.github.skydynamic.quickbakcupmulti.fabric.client.QuickbakcupmultiReforgedFabricClient"

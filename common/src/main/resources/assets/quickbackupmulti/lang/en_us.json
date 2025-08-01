@@ -50,6 +50,7 @@
   "quickbackupmulti.restoring_backup.state.restore_temp_backup": "Restoring save from before backup execution...",
   "quickbackupmulti.restoring_backup.state.cancel": "Cancelling restore backup...",
   "quickbackupmulti.screen.restore_screen.title": "Restore Visualization Screen",
-  "quickbackupmulti.screen.restore_screen.progress": "Progress: ",
+  "quickbackupmulti.screen.restore_screen.waiting_for_server": "Waiting for server",
+  "quickbackupmulti.screen.restore_screen.progress": "Progress: %s",
   "quickbackupmulti.screen.restore_screen.cancel_button": "Cancel"
 }

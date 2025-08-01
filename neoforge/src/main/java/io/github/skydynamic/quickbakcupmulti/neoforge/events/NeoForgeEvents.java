@@ -1,7 +1,7 @@
 package io.github.skydynamic.quickbakcupmulti.neoforge.events;
 
 import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
-import io.github.skydynamic.quickbakcupmulti.neoforge.QuickbakcupmultiReforgedNeoForge;
+import io.github.skydynamic.quickbakcupmulti.neoforge.QuickbackupmultiReforgedNeoForge;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.event.OnServerStoppedHandler;
 import io.github.skydynamic.quickbakcupmulti.neoforge.ServerManagerNeoforge;
@@ -18,7 +18,7 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 public class NeoForgeEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
-        QuickbakcupmultiReforgedNeoForge.getModContainer().setDispatcher(event.getDispatcher());
+        QuickbackupmultiReforgedNeoForge.getModContainer().setDispatcher(event.getDispatcher());
         QuickbakcupmultiReforged.registerCommand();
     }
 

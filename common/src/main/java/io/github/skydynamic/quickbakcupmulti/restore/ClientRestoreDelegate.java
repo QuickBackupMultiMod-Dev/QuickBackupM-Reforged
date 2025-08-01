@@ -32,12 +32,12 @@ public class ClientRestoreDelegate {
 
         restoreFuture = CompletableFuture.runAsync(() -> {
             screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.make_temp_backup"));
+            screen.setProgress(0.05f);
             BackupManager.makeTempBackup();
-            screen.setProgress("5%");
 
             screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.delete_origin_save"));
+            screen.setProgress(0.1f);
             deleteWorld();
-            screen.setProgress("10%");
 
             if (isCancelled.get()) {
                 handleCancellation();
@@ -46,8 +46,7 @@ public class ClientRestoreDelegate {
 
             BackupManager.RestoreExtraRunnable extraRunnable = (totalProgress, currentProgress) -> {
                 screen.setState(Translate.tr("quickbackupmulti.restoring_backup.state.restoring_backup"));
-                int progress = (int) ((currentProgress / (double) totalProgress) * 0.9 * 100);
-                screen.setProgress(progress + "%");
+                screen.setProgress((float) currentProgress / totalProgress * 0.9f);
             };
             BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup(), extraRunnable);
 
