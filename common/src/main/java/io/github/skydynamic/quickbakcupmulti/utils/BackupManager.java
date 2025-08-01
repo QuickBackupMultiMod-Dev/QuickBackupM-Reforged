@@ -87,8 +87,6 @@ public class BackupManager {
             double intervalTime = (endTime - startTime) / 1000.0;
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
 
-            // TODO: Schedule Backup
-
             for (ServerLevel serverLevel : server.getAllLevels()) {
                 if (serverLevel == null || !serverLevel.noSave) continue;
                 serverLevel.noSave = false;
