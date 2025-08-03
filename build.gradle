@@ -40,6 +40,10 @@ subprojects {
     repositories {
         mavenLocal()
         maven {
+            name = 'ParchmentMC'
+            url = 'https://maven.parchmentmc.org'
+        }
+        maven {
             name "CjsahMaven"
             url "https://server.cjsah.net:1002/maven/"
         }
@@ -47,7 +51,10 @@ subprojects {
 
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
-        mappings loom.officialMojangMappings()
+        mappings loom.layered() {
+            officialMojangMappings()
+            parchment("org.parchmentmc.data:parchment-1.21.5:2025.06.15@zip")
+        }
 
         // incremental storage
         implementation("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
