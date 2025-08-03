@@ -57,10 +57,10 @@ public class ClientRestoreDelegate {
 
             // Restore finish and rejoin the world
             QuickbakcupmultiReforged.getModContainer().setRestoringBackup(false);
-            long end_time = System.currentTimeMillis();
+            long endTime = System.currentTimeMillis();
             minecraftClient.execute(() -> {
                 Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_title"));
-                Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_desc", (int) (end_time - startTime * 1000)));
+                Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_desc", (int) ((endTime - startTime)) / 1000));
                 SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
             });
             if (QuickbakcupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
