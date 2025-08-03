@@ -98,12 +98,7 @@ public class ListBackupsUtils {
 
     public static MutableComponent list(int page) {
         long totalBackupSizeB = 0;
-        List<StorageInfo> backupList;
-        if (!QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
-            backupList = QuickbakcupmultiReforged.getDatabase().getAllStorageInfo();
-        } else {
-            backupList = DatabaseCache.getStorageInfoCaches();
-        }
+        List<StorageInfo> backupList = BackupManager.getBackupsList();
         List<StorageInfo> backupsInfoList = backupList.stream()
             .sorted(Comparator.comparingLong(StorageInfo::getTimestamp))
             .toList();
