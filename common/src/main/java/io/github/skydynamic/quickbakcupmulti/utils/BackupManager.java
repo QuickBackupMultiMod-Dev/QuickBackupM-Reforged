@@ -3,6 +3,7 @@ package io.github.skydynamic.quickbakcupmulti.utils;
 import io.github.skydynamic.increment.storage.lib.database.Database;
 import io.github.skydynamic.increment.storage.lib.database.DatabaseTables;
 import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
+import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.database.DatabaseManager;
 import net.minecraft.commands.CommandSourceStack;
@@ -20,8 +21,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
@@ -42,22 +44,14 @@ public class BackupManager {
         return path;
     }
 
-    private static void getBackupExists(File file, Consumer<String> consumer) {
-        if (file.isDirectory() && QuickbakcupmultiReforged.getDatabase().storageExists(file.getName())) {
-            consumer.accept(file.getName());
+    public static List<StorageInfo> getBackupsList() {
+        List<StorageInfo> backupList;
+        if (!QuickbakcupmultiReforged.getModConfig().isCacheDatabase()) {
+            backupList = QuickbakcupmultiReforged.getDatabase().getAllStorageInfo();
+        } else {
+            backupList = DatabaseCache.getStorageInfoCaches();
         }
-    }
-
-    private static List<String> getBackupExistsWithList(Path path) {
-        List<String> backupsDirList = new ArrayList<>();
-        for (File file : Objects.requireNonNull(path.toFile().listFiles())) {
-            getBackupExists(file, backupsDirList::add);
-        }
-        return backupsDirList;
-    }
-
-    public static List<String> getBackupsList() {
-        return getBackupExistsWithList(getBackupPath());
+        return backupList;
     }
 
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
@@ -86,8 +80,6 @@ public class BackupManager {
             long endTime = System.currentTimeMillis();
             double intervalTime = (endTime - startTime) / 1000.0;
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
-
-            // TODO: Schedule Backup
 
             for (ServerLevel serverLevel : server.getAllLevels()) {
                 if (serverLevel == null || !serverLevel.noSave) continue;

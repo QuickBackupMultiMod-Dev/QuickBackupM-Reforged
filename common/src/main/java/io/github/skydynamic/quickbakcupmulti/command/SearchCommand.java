@@ -2,6 +2,7 @@ package io.github.skydynamic.quickbakcupmulti.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -22,7 +23,7 @@ public class SearchCommand {
         );
 
     private static int searchSaveBackups(CommandSourceStack commandSource, String string) {
-        List<String> backupsList = getBackupsList();
+        List<String> backupsList = getBackupsList().stream().map(StorageInfo::getName).toList();
         List<String> result = backupsList.stream()
             .filter(it -> StringUtils.containsIgnoreCase(it, string))
             .toList();

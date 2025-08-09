@@ -6,19 +6,18 @@ import io.github.skydynamic.quickbakcupmulti.ModVersion;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import lombok.Getter;
 import lombok.Setter;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.loading.FMLPaths;
 
 @Mod(value = QuickbakcupmultiReforged.MOD_ID)
-public final class QuickbakcupmultiReforgedNeoForge {
+public final class QuickbackupmultiReforgedNeoForge {
     @Getter
     private static final ModContainer modContainer = new ModContainer();
     @Setter @Getter
     private static String[] boostArgs = null;
 
-    public QuickbakcupmultiReforgedNeoForge() {
+    public QuickbackupmultiReforgedNeoForge() {
         modContainer.setConfigPath(FMLPaths.CONFIGDIR.get());
         modContainer.setEnvType(FMLLoader.getDist().isClient() ? ModEnvType.CLIENT : ModEnvType.SERVER);
 

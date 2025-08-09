@@ -1,6 +1,6 @@
 package io.github.skydynamic.quickbakcupmulti.fabric.events;
 
-import io.github.skydynamic.quickbakcupmulti.fabric.QuickbakcupmultiReforgedFabric;
+import io.github.skydynamic.quickbakcupmulti.fabric.QuickbackupmultiReforgedFabric;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.ServerManager;
 import io.github.skydynamic.quickbakcupmulti.event.OnServerStoppedHandler;
@@ -13,7 +13,7 @@ public class FabricEvents {
         ServerLifecycleEvents.SERVER_STARTED.register(FabricEvents::onServerStarted);
         CommandRegistrationCallback.EVENT.register(
             (commandDispatcher, registryAccess, environment) -> {
-                QuickbakcupmultiReforgedFabric.getModContainer().setDispatcher(commandDispatcher);
+                QuickbackupmultiReforgedFabric.getModContainer().setDispatcher(commandDispatcher);
                 QuickbakcupmultiReforged.registerCommand();
             }
         );
