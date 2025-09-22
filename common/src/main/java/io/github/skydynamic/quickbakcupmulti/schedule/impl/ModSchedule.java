@@ -46,9 +46,9 @@ public class ModSchedule implements IModSchedule, Job {
         jobDetail = JobBuilder.newJob(this.getClass()).withIdentity(identity).build();
         StdSchedulerFactory sf = new StdSchedulerFactory();
 
-        if (crontab != null && !crontab.isEmpty() && interval == null) {
+        if (crontab != null && !crontab.isEmpty()) {
             trigger = buildTrigger(identity, CronUtils.ScheduleMode.CRONTAB, crontab);
-        } else if (interval != null && interval > 0 && crontab == null) {
+        } else if (interval != null && interval > 0) {
             trigger = buildTrigger(identity, CronUtils.ScheduleMode.INTERVAL, interval);
         } else {
             return false;
