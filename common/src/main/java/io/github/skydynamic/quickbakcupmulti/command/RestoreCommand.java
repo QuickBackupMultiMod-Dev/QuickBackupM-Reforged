@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.restore.RestoreTimer;
+import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionType;
 import lombok.Getter;
@@ -32,7 +33,7 @@ public class RestoreCommand {
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
         .then(Commands.argument("name", StringArgumentType.string())
             .suggests(((context, builder) -> {
-                for (StorageInfo info : QuickbakcupmultiReforged.getDatabase().getAllStorageInfo()) {
+                for (StorageInfo info : BackupManager.getBackupsList()) {
                     if (info.getName().contains(builder.getRemaining())) {
                         builder.suggest(info.getName());
                     }

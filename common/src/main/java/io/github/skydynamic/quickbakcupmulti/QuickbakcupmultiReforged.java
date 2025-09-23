@@ -74,7 +74,7 @@ public final class QuickbakcupmultiReforged {
 
         String appendFolder = (QuickbakcupmultiReforged.getModContainer().getEnvType() == ModEnvType.CLIENT) ? "/" + collectionName : "";
         DatabaseManager databaseManager = new DatabaseManager(
-            "QuickBakcupMulti",
+            "QuickBackupMulti",
             QuickbakcupmultiReforged.getModConfig().getStoragePath(),
             UUID.nameUUIDFromBytes(collectionName.getBytes())
         );

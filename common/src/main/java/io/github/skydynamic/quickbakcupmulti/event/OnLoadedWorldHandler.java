@@ -30,7 +30,7 @@ public class OnLoadedWorldHandler {
             Runnable scheduleBackupRunnable = new DefaultScheduleBackupRunnable();
             if (scheduleBackupConfig.interval != null) {
                 int interval = (int) DurationUtils.parseDurationToSeconds(scheduleBackupConfig.interval);
-                ScheduleManager.registerSchedule("scheduleBackup", databaseBackupConfig.interval, scheduleBackupRunnable);
+                ScheduleManager.registerSchedule("scheduleBackup", interval, scheduleBackupRunnable);
             } else if (scheduleBackupConfig.crontab != null) {
                 ScheduleManager.registerSchedule("scheduleBackup", scheduleBackupConfig.crontab, scheduleBackupRunnable);
             }

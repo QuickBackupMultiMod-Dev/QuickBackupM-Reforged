@@ -19,7 +19,7 @@ public class DeleteCommand {
         .requires(it -> PermissionManager.hasPermission(it, 2, PermissionType.HELPER))
         .then(Commands.argument("name", StringArgumentType.string())
             .suggests(((context, builder) -> {
-                for (StorageInfo info : QuickbakcupmultiReforged.getDatabase().getAllStorageInfo()) {
+                for (StorageInfo info : BackupManager.getBackupsList()) {
                     if (info.getName().contains(builder.getRemaining())) {
                         builder.suggest(info.getName());
                     }
