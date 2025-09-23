@@ -27,10 +27,8 @@
   ],
   "depends": {
     "fabricloader": ">=0.16.10",
+    "fabric-language-kotlin":  "*",
     "minecraft": "~1.21",
     "java": ">=21"
-  },
-  "suggests": {
-    "another-mod": "*"
   }
 }
