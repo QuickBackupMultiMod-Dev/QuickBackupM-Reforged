@@ -13,12 +13,6 @@ public class ServerManager {
         this.server = server;
     }
 
-    public void startServer() {
-        this.server.running = true;
-        this.server.stopped = false;
-        this.server.runServer();
-    }
-
     public void stopServer() {
         this.server.halt(false);
     }
