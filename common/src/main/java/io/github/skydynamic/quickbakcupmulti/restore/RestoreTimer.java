@@ -3,6 +3,7 @@ package io.github.skydynamic.quickbakcupmulti.restore;
 import io.github.skydynamic.quickbakcupmulti.ModEnvType;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.command.RestoreCommand;
+import io.github.skydynamic.quickbakcupmulti.restart.RestoreMarker;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -20,14 +21,22 @@ public class RestoreTimer extends TimerTask {
 
     @Override
     public void run() {
-        RestoreCommand.getRestoreDataMap().clear();
-        QuickbakcupmultiReforged.getModContainer().setRestoringBackup(true);
         if (env == ModEnvType.SERVER) {
-            for (ServerPlayer player : players) {
-                player.connection.disconnect(Component.literal("Server restore backup"));
-            }
-            QuickbakcupmultiReforged.getServerManager().stopServer();
+            QuickbakcupmultiReforged.getServerManager()
+                .getCommandSource()
+                .getServer()
+                .execute(() -> {
+                    RestoreCommand.getRestoreDataMap().clear();
+                    QuickbakcupmultiReforged.getModContainer().setRestoringBackup(true);
+                    for (ServerPlayer player : players) {
+                        player.connection.disconnect(Component.literal("Server restore backup"));
+                    }
+                    RestoreMarker.write(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup());
+                    QuickbakcupmultiReforged.getServerManager().stopServer();
+                });
         } else {
+            RestoreCommand.getRestoreDataMap().clear();
+            QuickbakcupmultiReforged.getModContainer().setRestoringBackup(true);
             new ClientRestoreDelegate().run();
         }
     }

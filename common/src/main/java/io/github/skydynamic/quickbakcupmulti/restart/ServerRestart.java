@@ -1,5 +1,4 @@
-package io.github.skydynamic.quickbakcupmulti.neoforge.restart;
-
+package io.github.skydynamic.quickbakcupmulti.restart;
 
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 
@@ -8,8 +7,10 @@ import java.lang.management.RuntimeMXBean;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NeoforgeRestart {
-    private static final RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+public class ServerRestart {
+    private static final RuntimeMXBean RUNTIME_MX_BEAN = ManagementFactory.getRuntimeMXBean();
+
+    private ServerRestart() {}
 
     public static List<String> generateUnixRestartCommand() {
         String jre = System.getProperty("java.home") + "/bin/java";
@@ -22,9 +23,9 @@ public class NeoforgeRestart {
     }
 
     private static List<String> generateRestartCommand(String jre) {
-        String cp = runtimeMxBean.getClassPath();
-        String mainClass = runtimeMxBean.getSystemProperties().get("sun.java.command");
-        List<String> arguments = new ArrayList<>(runtimeMxBean.getInputArguments());
+        String cp = RUNTIME_MX_BEAN.getClassPath();
+        String mainClass = RUNTIME_MX_BEAN.getSystemProperties().get("sun.java.command");
+        List<String> arguments = new ArrayList<>(RUNTIME_MX_BEAN.getInputArguments());
 
         if (mainClass == null || mainClass.isEmpty()) {
             throw new IllegalArgumentException("Main class is not specified.");
@@ -37,7 +38,6 @@ public class NeoforgeRestart {
         command.add(jre);
         command.add("-cp");
         command.add(cp);
-        command.add("-XstartOnFirstThread");
         command.addAll(arguments);
         command.addAll(List.of(mainClass.split(" ")));
 
@@ -48,7 +48,6 @@ public class NeoforgeRestart {
         List<String> command;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
             command = generateWindowsRestartCommand();
-            command.remove("-XstartOnFirstThread");
         } else {
             command = generateUnixRestartCommand();
         }

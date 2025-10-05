@@ -1,10 +1,10 @@
 package io.github.skydynamic.quickbakcupmulti.neoforge.events;
 
-import io.github.skydynamic.quickbakcupmulti.config.ModConfig;
-import io.github.skydynamic.quickbakcupmulti.neoforge.QuickbackupmultiReforgedNeoForge;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
+import io.github.skydynamic.quickbakcupmulti.ServerManager;
+import io.github.skydynamic.quickbakcupmulti.neoforge.QuickbackupmultiReforgedNeoForge;
 import io.github.skydynamic.quickbakcupmulti.event.OnServerStoppedHandler;
-import io.github.skydynamic.quickbakcupmulti.neoforge.ServerManagerNeoforge;
+import io.github.skydynamic.quickbakcupmulti.restart.RestoreMarker;
 import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -24,7 +24,12 @@ public class NeoForgeEvents {
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        QuickbakcupmultiReforged.setServerManager(new ServerManagerNeoforge(event.getServer()));
+        RestoreMarker.read().ifPresent(backup -> {
+            BackupManager.restoreBackup(backup);
+            QuickbakcupmultiReforged.getModContainer().setCurrentSelectionBackup(backup);
+            RestoreMarker.delete();
+        });
+        QuickbakcupmultiReforged.setServerManager(new ServerManager(event.getServer()));
 
         // suck ModifiableBiomeInfo & ModifiableStructureInfo
         if (QuickbakcupmultiReforged.getModContainer().isRestoringBackup()) {
@@ -35,14 +40,7 @@ public class NeoForgeEvents {
     @OnlyIn(Dist.DEDICATED_SERVER)
     @SubscribeEvent
     public static void onDedicatedServerStopped(ServerStoppedEvent event) {
-        if (QuickbakcupmultiReforged.getModContainer().isRestoringBackup()) {
-            if (QuickbakcupmultiReforged.getModConfig().getAutoRestartMode() == ModConfig.AutoRestartMode.DEFAULT) {
-                BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup());
-                QuickbakcupmultiReforged.getServerManager().startServer();
-            } else {
-                OnServerStoppedHandler.handle();
-            }
-        }
+        OnServerStoppedHandler.handle();
     }
 
     @OnlyIn(Dist.CLIENT)
