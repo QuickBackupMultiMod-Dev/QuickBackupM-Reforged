@@ -31,17 +31,25 @@ import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 public class RestoreCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> restoreCmd = Commands.literal("restore")
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
-        .then(Commands.argument("name", StringArgumentType.string())
+        .then(Commands.argument("target", StringArgumentType.string())
             .suggests(((context, builder) -> {
-                for (StorageInfo info : BackupManager.getBackupsList()) {
-                    if (info.getName().contains(builder.getRemaining())) {
-                        builder.suggest(info.getName());
+                List<StorageInfo> backups = BackupManager.getSortedBackups();
+                String remaining = builder.getRemaining();
+                int index = 1;
+                for (StorageInfo info : backups) {
+                    String name = info.getName();
+                    if (name.contains(remaining)) {
+                        builder.suggest(name);
+                    }
+                    String idx = String.valueOf(index++);
+                    if (idx.startsWith(remaining)) {
+                        builder.suggest(idx);
                     }
                 }
                 return builder.buildFuture();
             }))
             .executes(it ->
-                restoreBackup(it.getSource(), StringArgumentType.getString(it, "name"))
+                restoreBackup(it.getSource(), StringArgumentType.getString(it, "target"))
             )
         );
 
@@ -63,8 +71,9 @@ public class RestoreCommand {
     @Getter
     private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Object>> restoreDataMap = new ConcurrentHashMap<>();
 
-    private static int restoreBackup(CommandSourceStack commandSource, String name) {
-        if (!QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
+    private static int restoreBackup(CommandSourceStack commandSource, String target) {
+        String name = resolveBackupName(target);
+        if (name == null || !QuickbakcupmultiReforged.getDatabase().storageExists(name)) {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.fail")));
             return 0;
         }
@@ -140,5 +149,23 @@ public class RestoreCommand {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.confirm_restore.nothing_to_confirm")));
         }
         return 1;
+    }
+
+    private static String resolveBackupName(String target) {
+        String trimmed = target.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.chars().allMatch(Character::isDigit)) {
+            try {
+                int index = Integer.parseInt(trimmed);
+                StorageInfo info = BackupManager.getBackupByIndex(index);
+                if (info != null) {
+                    return info.getName();
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return trimmed;
     }
 }
