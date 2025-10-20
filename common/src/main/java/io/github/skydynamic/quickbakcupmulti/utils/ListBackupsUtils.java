@@ -1,7 +1,6 @@
 package io.github.skydynamic.quickbakcupmulti.utils;
 
 import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
-import io.github.skydynamic.quickbakcupmulti.DatabaseCache;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
@@ -14,9 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.Comparator;
 import java.util.List;
 
 import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
@@ -67,14 +64,16 @@ public class ListBackupsUtils {
         return getPageNavigationText("[->]", page, totalPage, 1);
     }
 
-    private static MutableComponent getSlotText(StorageInfo info, int page, int num) throws IOException {
+    private static MutableComponent getSlotText(StorageInfo info, int page, int num, int globalIndex) throws IOException {
         String name = info.getName();
         MutableComponent backText = Component.literal("§2[▷] ");
         MutableComponent deleteText = Component.literal("§c[×] ");
         MutableComponent nameText = Component.literal("§6" + truncateString(name, 8) + "§r ");
+        MutableComponent indexText = Component.literal("#" + globalIndex + " ")
+            .withStyle(style -> style.withColor(ChatFormatting.GRAY));
         MutableComponent resultText = Component.literal("");
 
-        backText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb restore \"%s\"".formatted(name))))
+        backText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb restore " + globalIndex)))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
 
@@ -89,6 +88,7 @@ public class ListBackupsUtils {
         String desc = info.getDesc();
         if (desc.isEmpty()) desc = "Empty";
         resultText.append("\n" + tr("quickbackupmulti.list_backup.slot.header", num + (5 * (page - 1))) + " ")
+            .append(indexText)
             .append(nameText)
             .append(backText)
             .append(deleteText)
@@ -98,10 +98,7 @@ public class ListBackupsUtils {
 
     public static MutableComponent list(int page) {
         long totalBackupSizeB = 0;
-        List<StorageInfo> backupList = BackupManager.getBackupsList();
-        List<StorageInfo> backupsInfoList = backupList.stream()
-            .sorted(Comparator.comparingLong(StorageInfo::getTimestamp))
-            .toList();
+        List<StorageInfo> backupsInfoList = BackupManager.getSortedBackups();
         if (backupsInfoList.isEmpty() || getPageCount(backupsInfoList, page) == 0) {
             return Component.literal(tr("quickbackupmulti.list_empty"));
         }
@@ -123,8 +120,8 @@ public class ListBackupsUtils {
         for (int j = 1; j <= getPageCount(backupsInfoList, page); j++) {
             try {
                 StorageInfo info = backupsInfoList.get(((j - 1) + BACKUPS_PER_PAGE * (page - 1)));
-                String name = info.getName();
-                resultText.append(getSlotText(info, page, j));
+                int globalIndex = (page - 1) * BACKUPS_PER_PAGE + j;
+                resultText.append(getSlotText(info, page, j, globalIndex));
             } catch (IOException e) {
                 logger.error("Error while listing backups", e);
                 return Component.literal("Error while listing backups").withStyle(ChatFormatting.RED);
@@ -143,7 +140,11 @@ public class ListBackupsUtils {
             try {
                 String name = searchResultList.get(i - 1);
                 StorageInfo result = QuickbakcupmultiReforged.getDatabase().getStorageInfoWithName(name);
-                resultText.append(getSlotText(result, 1, i));
+                int globalIndex = BackupManager.getBackupIndex(name);
+                if (globalIndex <= 0) {
+                    globalIndex = i;
+                }
+                resultText.append(getSlotText(result, 1, i, globalIndex));
             } catch (IOException e) {
                 logger.error("Error while searching backups", e);
                 return Component.literal("Error while searching backups").withStyle(ChatFormatting.RED);

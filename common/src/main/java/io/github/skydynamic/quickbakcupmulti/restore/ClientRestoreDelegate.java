@@ -26,8 +26,10 @@ public class ClientRestoreDelegate {
     public void run() {
         long startTime = System.currentTimeMillis();
         minecraftClient.executeBlocking(() -> {
-            minecraftClient.level.disconnect();
-            minecraftClient.disconnect(screen);
+            if (minecraftClient.level != null) {
+                minecraftClient.level.disconnect(Component.translatable("multiplayer.status.quitting"));
+            }
+            minecraftClient.disconnect(screen, false);
         });
 
         restoreFuture = CompletableFuture.runAsync(() -> {
@@ -65,7 +67,7 @@ public class ClientRestoreDelegate {
             });
             if (QuickbakcupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
                 minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().openWorld(levelId,
-                    () -> minecraftClient.setScreen(null)));
+                        () -> minecraftClient.setScreen(null)));
             } else {
                 minecraftClient.execute(() -> minecraftClient.setScreen(null));
             }

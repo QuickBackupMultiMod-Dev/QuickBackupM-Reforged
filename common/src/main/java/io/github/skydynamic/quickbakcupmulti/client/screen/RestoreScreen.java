@@ -33,18 +33,18 @@ public class RestoreScreen extends Screen {
         int centerY = this.height / 2;
         guiGraphics.drawCenteredString(font, Component.nullToEmpty(this.state), centerX, centerY - 20, 0xFFFFFF);
         drawProgressBar(
-            guiGraphics,
-            centerX - 70,
-            centerY - 5,
-            centerX + 70,
-            centerY + 5
+                guiGraphics,
+                centerX - 70,
+                centerY - 5,
+                centerX + 70,
+                centerY + 5
         );
         guiGraphics.drawCenteredString(
-            font,
-            Component.nullToEmpty(Translate.tr("quickbackupmulti.screen.restore_screen.progress", this.getPercentString())),
-            centerX,
-            centerY + 10,
-            0xFFFFFF
+                font,
+                Component.nullToEmpty(Translate.tr("quickbackupmulti.screen.restore_screen.progress", this.getPercentString())),
+                centerX,
+                centerY + 10,
+                0xFFFFFF
         );
     }
 
@@ -90,7 +90,7 @@ public class RestoreScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
         this.renderPanorama(guiGraphics, f);
-        this.renderBlurredBackground();
+        this.renderBlurredBackground(guiGraphics);
         this.renderMenuBackground(guiGraphics);
     }
 }
