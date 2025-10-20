@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -52,6 +53,30 @@ public class BackupManager {
             backupList = DatabaseCache.getStorageInfoCaches();
         }
         return backupList;
+    }
+
+    public static List<StorageInfo> getSortedBackups() {
+        return getBackupsList().stream()
+            .sorted(Comparator.comparingLong(StorageInfo::getTimestamp))
+            .toList();
+    }
+
+    public static StorageInfo getBackupByIndex(int index) {
+        List<StorageInfo> backups = getSortedBackups();
+        if (index < 1 || index > backups.size()) {
+            return null;
+        }
+        return backups.get(index - 1);
+    }
+
+    public static int getBackupIndex(String name) {
+        List<StorageInfo> backups = getSortedBackups();
+        for (int i = 0; i < backups.size(); i++) {
+            if (backups.get(i).getName().equals(name)) {
+                return i + 1;
+            }
+        }
+        return -1;
     }
 
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
