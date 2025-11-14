@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
@@ -74,15 +73,15 @@ public class ListBackupsUtils {
             .withStyle(style -> style.withColor(ChatFormatting.GRAY));
         MutableComponent resultText = Component.literal("");
 
-        backText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb restore " + globalIndex)))
+        backText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb restore " + globalIndex)))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
 
-        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb delete \"%s\"".formatted(name))))
+        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
-        nameText.withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/qb show \"%s\"".formatted(name))))
+        nameText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb show \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
 
