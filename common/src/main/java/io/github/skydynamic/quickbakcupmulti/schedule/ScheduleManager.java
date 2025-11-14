@@ -5,17 +5,21 @@ import io.github.skydynamic.quickbakcupmulti.schedule.impl.ModSchedule;
 
 public class ScheduleManager {
     private static void registerSchedule(ModSchedule schedule) {
+        if (QuickbakcupmultiReforged.getModContainer().getSchedules().contains(schedule)) {
+            QuickbakcupmultiReforged.logger.warn("Schedule already exists: {}", schedule.getName());
+            return;
+        }
         QuickbakcupmultiReforged.getModContainer().getSchedules().add(schedule);
         QuickbakcupmultiReforged.logger.info("Register schedule: {}", schedule.getName());
     }
 
     public static void registerSchedule(String name, String crontab, Runnable executor) {
-        ModSchedule schedule = new ModSchedule(name, crontab).setExcutor(executor);
+        ModSchedule schedule = new ModSchedule(name, crontab).setExecutor(executor);
         registerSchedule(schedule);
     }
 
     public static void registerSchedule(String name, int interval, Runnable executor) {
-        ModSchedule schedule = new ModSchedule(name, interval).setExcutor(executor);
+        ModSchedule schedule = new ModSchedule(name, interval).setExecutor(executor);
         registerSchedule(schedule);
     }
 

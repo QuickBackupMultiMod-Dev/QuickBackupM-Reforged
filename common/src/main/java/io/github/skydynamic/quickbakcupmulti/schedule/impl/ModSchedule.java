@@ -3,13 +3,13 @@ package io.github.skydynamic.quickbakcupmulti.schedule.impl;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import io.github.skydynamic.quickbakcupmulti.schedule.CronUtils;
 import io.github.skydynamic.quickbakcupmulti.schedule.IModSchedule;
-import io.github.skydynamic.quickbakcupmulti.schedule.quartz.ModJobFactory;
+import io.github.skydynamic.quickbakcupmulti.schedule.ModJob;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 
 import static io.github.skydynamic.quickbakcupmulti.schedule.CronUtils.buildTrigger;
 
-public class ModSchedule implements IModSchedule, Job {
+public class ModSchedule implements IModSchedule {
     private String identity;
 
     private String crontab;
@@ -43,7 +43,10 @@ public class ModSchedule implements IModSchedule, Job {
 
     @Override
     public boolean startSchedule() {
-        jobDetail = JobBuilder.newJob(this.getClass()).withIdentity(identity).build();
+        jobDetail = JobBuilder
+            .newJob(ModJob.class)
+            .withIdentity(identity)
+            .build();
         StdSchedulerFactory sf = new StdSchedulerFactory();
 
         if (crontab != null && !crontab.isEmpty()) {
@@ -61,7 +64,6 @@ public class ModSchedule implements IModSchedule, Job {
         try {
             scheduler = sf.getScheduler();
             scheduler.scheduleJob(jobDetail, trigger);
-            scheduler.setJobFactory(new ModJobFactory(this));
             scheduler.start();
             return true;
         } catch (SchedulerException e) {
@@ -80,7 +82,7 @@ public class ModSchedule implements IModSchedule, Job {
     }
 
     @Override
-    public ModSchedule setExcutor(Runnable executor) {
+    public ModSchedule setExecutor(Runnable executor) {
         this.executor = executor;
         return this;
     }
@@ -108,14 +110,13 @@ public class ModSchedule implements IModSchedule, Job {
         return false;
     }
 
-    @Override
-    public void execute(JobExecutionContext jobExecutionContext) {
+    public void execute() {
         QuickbakcupmultiReforged.logger.info("Schedule {} execute in {}", identity, QuickbakcupmultiReforged.formatTimestamp(System.currentTimeMillis()));
         executor.run();
         QuickbakcupmultiReforged.logger.info(
             "Schedule {} execute done, next execute time: {}",
             identity,
-            QuickbakcupmultiReforged.formatTimestamp(jobExecutionContext.getTrigger().getNextFireTime().getTime())
+            QuickbakcupmultiReforged.formatTimestamp(trigger.getNextFireTime().getTime())
         );
     }
 }

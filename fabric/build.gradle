@@ -37,6 +37,8 @@ dependencies {
     common(project(path: ":${mod_id}-common:", configuration: "namedElements")) { transitive false }
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionFabric")
 
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.12.3+kotlin.2.0.21")
+
     include("org.quartz-scheduler:quartz:2.5.0")
 
     include("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
