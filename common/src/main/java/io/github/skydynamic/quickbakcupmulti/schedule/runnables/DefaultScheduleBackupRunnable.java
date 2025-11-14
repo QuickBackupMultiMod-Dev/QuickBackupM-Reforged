@@ -34,7 +34,9 @@ public class DefaultScheduleBackupRunnable implements Runnable {
             }
         }
 
-        String scheduleName = "ScheduleBackup-" + QuickbakcupmultiReforged.formatTimestamp(System.currentTimeMillis());
+        String scheduleName = "ScheduleBackup-" + QuickbakcupmultiReforged
+            .formatTimestamp(System.currentTimeMillis())
+            .replace(" ", "-");
 
         if (QuickbakcupmultiReforged.getDatabase().storageExists(scheduleName)) {
             QuickbakcupmultiReforged.logger.warn("Schedule backup name already exists: {}", scheduleName);
