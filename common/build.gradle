@@ -5,3 +5,27 @@ architectury {
 dependencies {
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 }
+
+publishing {
+    publications {
+        mavenCommon(MavenPublication) {
+            groupId = "io.github.skydynamic"
+            artifactId = "quickbackupmulti-reforged-common"
+
+            from components.java
+        }
+    }
+
+    repositories {
+        mavenLocal()
+
+        maven {
+            name "CJ-Maven"
+            url System.getenv("CJ_MAVEN_URL")
+            credentials {
+                username System.getenv("CJ_MAVEN_USERNAME")
+                password System.getenv("CJ_MAVEN_PASSWORD")
+            }
+        }
+    }
+}
