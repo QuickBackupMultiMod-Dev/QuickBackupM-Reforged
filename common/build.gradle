@@ -11,6 +11,7 @@ publishing {
         mavenCommon(MavenPublication) {
             groupId = "io.github.skydynamic"
             artifactId = "quickbackupmulti-reforged-common"
+            version = rootProject.minecraft_version + "-" + rootProject.version
 
             from components.java
         }
