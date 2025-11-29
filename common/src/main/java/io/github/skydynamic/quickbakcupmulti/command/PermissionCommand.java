@@ -1,6 +1,5 @@
 package io.github.skydynamic.quickbakcupmulti.command;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
@@ -10,6 +9,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.players.NameAndId;
 
 import java.util.Collection;
 
@@ -33,13 +33,13 @@ public class PermissionCommand {
             .executes(it -> reloadPermission(it.getSource()))
         );
 
-    private static int setPermission(CommandSourceStack commandSource, Collection<GameProfile> players, int level) {
+    private static int setPermission(CommandSourceStack commandSource, Collection<NameAndId> players, int level) {
         players.forEach(player -> {
-            QuickbakcupmultiReforged.getModContainer().getPermissionManager().setPermissionByPermissionLevelInt(level, player.getName());
+            QuickbakcupmultiReforged.getModContainer().getPermissionManager().setPermissionByPermissionLevelInt(level, player.name());
             commandSource.sendSystemMessage(
             Component.literal(
                 "Set %s to %s".formatted(
-                    player.getName(),
+                    player.name(),
                     PermissionType.getByLevelInt(level).name())
                 )
             );

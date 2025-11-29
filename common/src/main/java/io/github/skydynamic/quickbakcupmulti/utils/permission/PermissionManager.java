@@ -7,6 +7,7 @@ import io.github.skydynamic.quickbakcupmulti.QuickbakcupmultiReforged;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -117,7 +118,7 @@ public class PermissionManager {
         ServerPlayer player;
         MinecraftServer server;
         if (!flag && (server = source.getServer()).isSingleplayer() && (player = source.getPlayer()) != null && source.isPlayer()) {
-            flag = server.isSingleplayerOwner(player.getGameProfile());
+            flag = server.isSingleplayerOwner(new NameAndId(player.getGameProfile()));
         }
         return flag;
     }

@@ -98,7 +98,7 @@ public class RestoreCommand {
                 }
                 String executePlayerName;
                 if (commandSource.getPlayer() != null) {
-                    executePlayerName = commandSource.getPlayer().getGameProfile().getName();
+                    executePlayerName = commandSource.getPlayer().getGameProfile().name();
                 } else {
                     executePlayerName = "Console";
                 }

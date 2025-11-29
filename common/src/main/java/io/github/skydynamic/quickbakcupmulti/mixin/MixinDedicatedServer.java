@@ -8,7 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
 import net.minecraft.server.WorldStem;
 import net.minecraft.server.dedicated.DedicatedServer;
-import net.minecraft.server.level.progress.ChunkProgressListenerFactory;
+import net.minecraft.server.level.progress.LevelLoadListener;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.LevelStorageSource;
@@ -25,9 +25,9 @@ public abstract class MixinDedicatedServer extends MinecraftServer {
         Thread thread, LevelStorageSource.LevelStorageAccess levelStorageAccess,
         PackRepository packRepository, WorldStem worldStem,
         Proxy proxy, DataFixer dataFixer, Services services,
-        ChunkProgressListenerFactory chunkProgressListenerFactory
+        LevelLoadListener levelLoadListener
     ) {
-        super(thread, levelStorageAccess, packRepository, worldStem, proxy, dataFixer, services, chunkProgressListenerFactory);
+        super(thread, levelStorageAccess, packRepository, worldStem, proxy, dataFixer, services, levelLoadListener);
     }
 
     @Inject(
