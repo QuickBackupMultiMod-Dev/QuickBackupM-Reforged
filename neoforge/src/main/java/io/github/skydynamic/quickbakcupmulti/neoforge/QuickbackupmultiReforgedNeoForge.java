@@ -19,10 +19,14 @@ public final class QuickbackupmultiReforgedNeoForge {
 
     public QuickbackupmultiReforgedNeoForge() {
         modContainer.setConfigPath(FMLPaths.CONFIGDIR.get());
-        modContainer.setEnvType(FMLLoader.getDist().isClient() ? ModEnvType.CLIENT : ModEnvType.SERVER);
-
-        String version = FMLLoader.getLoadingModList().getModFileById(QuickbakcupmultiReforged.MOD_ID).getMods().getFirst().getVersion().toString();
-        modContainer.setModVersion(new ModVersion(version));
+        FMLLoader instance = FMLLoader.getCurrentOrNull();
+        if (instance != null) {
+            modContainer.setEnvType(instance.getDist().isClient() ? ModEnvType.CLIENT : ModEnvType.SERVER);
+            String version = instance.getLoadingModList().getModFileById(QuickbakcupmultiReforged.MOD_ID).getMods().getFirst().getVersion().toString();
+            modContainer.setModVersion(new ModVersion(version));
+        } else {
+            throw new IllegalStateException("There is no current FML Loader");
+        }
 
         QuickbakcupmultiReforged.init(modContainer);
     }
