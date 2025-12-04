@@ -13,6 +13,7 @@ public class OnServerStoppedHandler {
                 BackupManager.makeTempBackup();
                 BackupManager.restoreBackup(QuickbakcupmultiReforged.getModContainer().getCurrentSelectionBackup());
                 QuickbakcupmultiReforged.getModContainer().setRestoringBackup(false);
+                QuickbakcupmultiReforged.getModContainer().setAfterRestarting(true);
                 switch (QuickbakcupmultiReforged.getModConfig().getAutoRestartMode()) {
                     case DISABLE -> {
                     }
