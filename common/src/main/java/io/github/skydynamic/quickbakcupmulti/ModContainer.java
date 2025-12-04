@@ -27,6 +27,7 @@ public class ModContainer {
     private Path currentSavePath;
 
     private boolean isRestoringBackup;
+    private boolean isAfterRestarting;
     private String currentSelectionBackup;
 
     private List<IModSchedule> schedules = new ArrayList<>();
