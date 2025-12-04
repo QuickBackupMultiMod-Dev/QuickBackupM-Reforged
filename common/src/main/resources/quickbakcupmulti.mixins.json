@@ -15,5 +15,6 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "client.MixinXaeroMinimapCore"
   ]
 }
