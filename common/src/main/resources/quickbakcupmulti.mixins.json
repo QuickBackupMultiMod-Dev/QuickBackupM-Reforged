@@ -6,15 +6,16 @@
   "client": [
     "client.MixinIntegratedServer",
     "client.MixinWorldOpenFlows",
-    "client.MixinWorldSelectionListWorldListEntry"
+    "client.MixinWorldSelectionListWorldListEntry",
+    "client.MixinXaeroMinimapCore"
   ],
   "server": [
-    "MixinDedicatedServer"
+    "server.MixinDedicatedServer",
+    "server.MixinLuckPermsPlugin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "client.MixinXaeroMinimapCore"
   ]
 }

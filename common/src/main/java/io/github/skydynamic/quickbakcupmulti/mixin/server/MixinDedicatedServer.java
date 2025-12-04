@@ -1,4 +1,4 @@
-package io.github.skydynamic.quickbakcupmulti.mixin;
+package io.github.skydynamic.quickbakcupmulti.mixin.server;
 
 import com.mojang.datafixers.DataFixer;
 import io.github.skydynamic.quickbakcupmulti.DatabaseCache;

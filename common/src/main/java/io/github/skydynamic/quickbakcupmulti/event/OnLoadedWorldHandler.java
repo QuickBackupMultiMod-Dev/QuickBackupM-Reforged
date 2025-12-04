@@ -16,6 +16,8 @@ public class OnLoadedWorldHandler {
         registerSchedules();
 
         ScheduleManager.startAllSchedule();
+
+        QuickbakcupmultiReforged.getModContainer().setAfterRestarting(false);
     }
 
     private static void registerSchedules() {
