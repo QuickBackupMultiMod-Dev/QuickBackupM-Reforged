@@ -2,3 +2,9 @@ accessWidener v2 named
 accessible method net/minecraft/server/MinecraftServer runServer ()V
 accessible field net/minecraft/server/MinecraftServer stopped Z
 accessible field net/minecraft/server/MinecraftServer running Z
+accessible field net/minecraft/server/MinecraftServer connection Lnet/minecraft/server/network/ServerConnectionListener;
+mutable field net/minecraft/server/MinecraftServer connection Lnet/minecraft/server/network/ServerConnectionListener;
+accessible field net/minecraft/server/MinecraftServer storageSource Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;
+mutable field net/minecraft/server/MinecraftServer storageSource Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;
+accessible field net/minecraft/server/MinecraftServer playerDataStorage Lnet/minecraft/world/level/storage/PlayerDataStorage;
+mutable field net/minecraft/server/MinecraftServer playerDataStorage Lnet/minecraft/world/level/storage/PlayerDataStorage;
