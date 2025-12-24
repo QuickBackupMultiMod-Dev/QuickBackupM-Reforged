@@ -9,12 +9,12 @@ import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
-@EventBusSubscriber(modid = QuickbakcupmultiReforged.MOD_ID)
+@Mod.EventBusSubscriber(modid = QuickbakcupmultiReforged.MOD_ID)
 public class NeoForgeEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {

@@ -23,7 +23,7 @@ public class ServerManager {
             this.server.stopped = false;
             this.server.connection = new ServerConnectionListener(this.server);
             LevelStorageSource levelStorageSource = LevelStorageSource.createDefault(
-                this.server.storageSource.getLevelDirectory().path()
+                this.server.storageSource.levelDirectory.path()
             );
             this.server.storageSource = levelStorageSource.validateAndCreateAccess(
                 this.server.storageSource.getLevelId()

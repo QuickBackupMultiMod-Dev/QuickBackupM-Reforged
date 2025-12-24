@@ -86,11 +86,4 @@ public class RestoreScreen extends Screen {
 
         return 0xFF000000 + (r << 16) + (g << 8);
     }
-
-    @Override
-    public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
-        this.renderPanorama(guiGraphics, f);
-        this.renderBlurredBackground(f);
-        this.renderMenuBackground(guiGraphics);
-    }
 }

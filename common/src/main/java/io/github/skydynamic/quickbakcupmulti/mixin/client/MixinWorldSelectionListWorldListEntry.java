@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinWorldSelectionListWorldListEntry {
     @Shadow
     @Final
-    LevelSummary summary;
+    private LevelSummary summary;
 
     @Shadow
     @Final
