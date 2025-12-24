@@ -64,7 +64,7 @@ public class ClientRestoreDelegate {
                 SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
             });
             if (QuickbakcupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
-                minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().checkForBackupAndLoad(levelId,
+                minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().openWorld(levelId,
                     () -> minecraftClient.setScreen(null)));
             } else {
                 minecraftClient.execute(() -> minecraftClient.setScreen(null));
