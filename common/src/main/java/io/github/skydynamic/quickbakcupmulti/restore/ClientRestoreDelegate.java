@@ -7,8 +7,6 @@ import io.github.skydynamic.quickbakcupmulti.utils.BackupManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
-import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.LevelStorageSource;
 
@@ -63,11 +61,11 @@ public class ClientRestoreDelegate {
             minecraftClient.execute(() -> {
                 Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_title"));
                 Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_desc", (int) ((endTime - startTime)) / 1000));
-                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastIds.PERIODIC_NOTIFICATION, title, desc);
+                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
             });
             if (QuickbakcupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
-                minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().loadLevel(new SelectWorldScreen(new TitleScreen()),
-                    levelId));
+                minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().checkForBackupAndLoad(levelId,
+                    () -> minecraftClient.setScreen(null)));
             } else {
                 minecraftClient.execute(() -> minecraftClient.setScreen(null));
             }
@@ -83,7 +81,7 @@ public class ClientRestoreDelegate {
             minecraftClient.execute(() -> {
                 Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.cancel_success"));
                 Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.cancel_success.desc"));
-                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastIds.PERIODIC_NOTIFICATION, title, desc);
+                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
                 minecraftClient.setScreen(null);
             });
         } catch (Exception e) {
