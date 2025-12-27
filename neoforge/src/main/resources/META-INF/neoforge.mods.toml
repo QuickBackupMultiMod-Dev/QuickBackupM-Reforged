@@ -8,6 +8,7 @@ modId = "quickbakcupmulti_reforged"
 version = "${version}"
 displayName = "QuickBakcupMulti-Reforged"
 authors = "SkyDynamic"
+"contributors" = "Celestia（辉夜星瞳）"
 description = '''
 A backup / restore mod, with multiple backup slots
 '''

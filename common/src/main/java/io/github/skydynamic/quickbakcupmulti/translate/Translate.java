@@ -11,7 +11,7 @@ import java.util.*;
 
 public class Translate {
     private static Map<String, String> translateMap = new HashMap<>();
-    public static final Collection<String> supportLanguage = List.of("zh_cn", "en_us");
+    public static final Collection<String> supportLanguage = List.of("zh_cn", "en_us", "zh_tw");
 
     public static Map<String, String> getTranslationFromResourcePath(String lang) {
         InputStream langFile = Translate.class.getClassLoader().getResourceAsStream("assets/quickbackupmulti/lang/%s.json".formatted(lang));
