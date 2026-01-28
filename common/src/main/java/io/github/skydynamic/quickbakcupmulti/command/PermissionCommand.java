@@ -9,6 +9,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.server.players.NameAndId;
 
 import java.util.Collection;
@@ -17,7 +18,7 @@ import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
 public class PermissionCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("permission")
-        .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_OWNER, PermissionType.ADMIN))
         .then(Commands.literal("set")
             .then(Commands.argument("player", GameProfileArgument.gameProfile())
                 .then(Commands.argument("level", IntegerArgumentType.integer(0, 2))

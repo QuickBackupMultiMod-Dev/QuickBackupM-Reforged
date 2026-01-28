@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,7 @@ import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
 public class RestoreCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> restoreCmd = Commands.literal("restore")
-        .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_OWNER, PermissionType.ADMIN))
         .then(Commands.argument("target", StringArgumentType.string())
             .suggests(((context, builder) -> {
                 List<StorageInfo> backups = BackupManager.getSortedBackups();
@@ -54,7 +55,7 @@ public class RestoreCommand {
         );
 
     public static final LiteralArgumentBuilder<CommandSourceStack> confirmCmd = Commands.literal("confirm")
-        .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_OWNER, PermissionType.ADMIN))
         .executes(it -> {
             try {
                 executeRestore(it.getSource());
@@ -65,7 +66,7 @@ public class RestoreCommand {
         });
 
     public static final LiteralArgumentBuilder<CommandSourceStack> cancelCmd = Commands.literal("cancel")
-        .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_OWNER, PermissionType.ADMIN))
                     .executes(it -> cancelRestore(it.getSource()));
 
     @Getter
