@@ -77,11 +77,11 @@ public class ListBackupsUtils {
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
 
-        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete %s".formatted(name))))
+        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
-        nameText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb show %s".formatted(name))))
+        nameText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb show \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
 
