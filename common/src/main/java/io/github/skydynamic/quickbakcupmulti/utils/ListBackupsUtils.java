@@ -47,7 +47,8 @@ public class ListBackupsUtils {
     private static MutableComponent getPageNavigationText(String direction, int page, int totalPage, int offset) {
         MutableComponent text = Component.literal(direction);
         text.withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty(direction))));
-        if (page != offset && totalPage > 1) {
+        int targetPage = page + offset;
+        if (targetPage >= 1 && targetPage <= totalPage) {
             text.withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand("/qb list " + (page + offset))))
                 .withStyle(style -> style.withColor(ChatFormatting.AQUA));
         } else {
