@@ -47,7 +47,8 @@ public class ListBackupsUtils {
     private static MutableComponent getPageNavigationText(String direction, int page, int totalPage, int offset) {
         MutableComponent text = Component.literal(direction);
         text.withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty(direction))));
-        if (page != offset && totalPage > 1) {
+        int targetPage = page + offset;
+        if (targetPage >= 1 && targetPage <= totalPage) {
             text.withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand("/qb list " + (page + offset))))
                 .withStyle(style -> style.withColor(ChatFormatting.AQUA));
         } else {
@@ -77,11 +78,11 @@ public class ListBackupsUtils {
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.restore", name)))));
 
-        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete %s".formatted(name))))
+        deleteText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb delete \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.literal(tr("quickbackupmulti.list_backup.slot.delete", name)))));
 
-        nameText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb show %s".formatted(name))))
+        nameText.withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand("/qb show \"%s\"".formatted(name))))
             .withStyle(style -> style.withHoverEvent(
                 new HoverEvent.ShowText(Component.nullToEmpty(tr("quickbackupmulti.list_backup.slot.show", name)))));
 

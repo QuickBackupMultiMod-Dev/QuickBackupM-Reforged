@@ -10,6 +10,7 @@ import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionManager;
 import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.server.permissions.Permissions;
 
 import java.text.SimpleDateFormat;
 
@@ -44,7 +45,7 @@ public class MakeCommand {
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HHmmss");
 
     public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("make")
-        .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.HELPER))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_OWNER, PermissionType.HELPER))
         .executes(it -> makeSaveBackup(it.getSource(), dateFormat.format(System.currentTimeMillis()), ""))
         .then(Commands.argument("name", StringArgumentType.string())
             .executes(it -> makeSaveBackup(it.getSource(), StringArgumentType.getString(it, "name"), ""))

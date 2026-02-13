@@ -11,12 +11,13 @@ import io.github.skydynamic.quickbakcupmulti.utils.permission.PermissionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 
 import static io.github.skydynamic.quickbakcupmulti.translate.Translate.tr;
 
 public class DeleteCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("delete")
-        .requires(it -> PermissionManager.hasPermission(it, 2, PermissionType.HELPER))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_GAMEMASTER, PermissionType.HELPER))
         .then(Commands.argument("name", StringArgumentType.string())
             .suggests(((context, builder) -> {
                 for (StorageInfo info : BackupManager.getBackupsList()) {
