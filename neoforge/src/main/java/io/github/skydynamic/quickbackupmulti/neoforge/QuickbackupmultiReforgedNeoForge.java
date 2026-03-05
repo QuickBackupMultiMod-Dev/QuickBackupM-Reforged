@@ -22,7 +22,7 @@ public final class QuickbackupmultiReforgedNeoForge {
         FMLLoader instance = FMLLoader.getCurrentOrNull();
         if (instance != null) {
             modContainer.setEnvType(instance.getDist().isClient() ? ModEnvType.CLIENT : ModEnvType.SERVER);
-            String version = instance.getLoadingModList().getModFileById(QuickbakcupmultiReforged.MOD_ID).getMods().getFirst().getVersion().toString();
+            String version = instance.getLoadingModList().getModFileById(QuickbackupmultiReforged.MOD_ID).getMods().getFirst().getVersion().toString();
             modContainer.setModVersion(new ModVersion(version));
         } else {
             throw new IllegalStateException("There is no current FML Loader");

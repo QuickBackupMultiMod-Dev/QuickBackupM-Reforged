@@ -35,7 +35,7 @@ public class PermissionCommand {
 
     private static int setPermission(CommandSourceStack commandSource, Collection<NameAndId> players, int level) {
         players.forEach(player -> {
-            QuickbakcupmultiReforged.getModContainer().getPermissionManager().setPermissionByPermissionLevelInt(level, player.name());
+            QuickbackupmultiReforged.getModContainer().getPermissionManager().setPermissionByPermissionLevelInt(level, player.name());
             commandSource.sendSystemMessage(
             Component.literal(
                 "Set %s to %s".formatted(
