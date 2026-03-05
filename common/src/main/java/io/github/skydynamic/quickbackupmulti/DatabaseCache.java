@@ -12,6 +12,10 @@ public class DatabaseCache {
 
     public static void updateStorageInfoCaches() {
         QuickbackupmultiReforged.logger.info("Update storage info caches");
-        storageInfoCaches = QuickbackupmultiReforged.getDatabase().getAllStorageInfo();
+        storageInfoCaches = QuickbackupmultiReforged.getDatabase()
+            .getAllStorageInfo()
+            .stream()
+            .filter(StorageInfo::getUseIncrementalStorage)
+            .toList();
     }
 }
