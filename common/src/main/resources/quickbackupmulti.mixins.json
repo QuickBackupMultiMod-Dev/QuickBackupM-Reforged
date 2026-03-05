@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "package": "io.github.skydynamic.quickbackupmulti.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+    "client.MixinIntegratedServer",
+    "client.MixinWorldOpenFlows",
+    "client.MixinWorldSelectionListWorldListEntry",
+    "client.MixinXaeroMinimapCore"
+  ],
+  "server": [
+    "server.MixinDedicatedServer",
+    "server.MixinLuckPermsPlugin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+  ]
+}
