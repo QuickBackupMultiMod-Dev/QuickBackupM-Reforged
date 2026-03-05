@@ -81,6 +81,8 @@ public class ModConfig implements IConfig {
         newStorage.clientAutoReJoinWorld = this.config.clientAutoReJoinWorld;
         newStorage.storagePath = this.config.storagePath;
         newStorage.cacheDatabase = this.config.cacheDatabase;
+        newStorage.fullBackupInterval = this.config.fullBackupInterval;
+        newStorage.saveFullBackupCount = this.config.saveFullBackupCount;
 
         newStorage.ignoredFiles = new ArrayList<>(this.config.ignoredFiles);
         newStorage.ignoredFolders = new ArrayList<>(this.config.ignoredFolders);
@@ -168,6 +170,14 @@ public class ModConfig implements IConfig {
         return config.cacheDatabase;
     }
 
+    public int getFullBackupInterval() {
+        return config.fullBackupInterval;
+    }
+
+    public int getSaveFullBackupCount() {
+        return config.saveFullBackupCount;
+    }
+
     public ScheduleBackupConfig getScheduleBackupConfig() {
         return config.scheduleBackup;
     }
@@ -209,7 +219,7 @@ public class ModConfig implements IConfig {
 
         private String storagePath = "./QuickBackupMulti";
         private boolean cacheDatabase = false;
-        private int makeFullBackupCountdown = 5;
+        private int fullBackupInterval = 5;
         private int saveFullBackupCount = 5;
 
         private ScheduleBackupConfig scheduleBackup = new ScheduleBackupConfig();
@@ -229,6 +239,8 @@ public class ModConfig implements IConfig {
                     ", clientAutoReJoinWorld=" + clientAutoReJoinWorld +
                     ", storagePath='" + storagePath + '\'' +
                     ", cacheDatabase=" + cacheDatabase +
+                    ", fullBackupInterval=" + fullBackupInterval +
+                    ", saveFullBackupCount=" + saveFullBackupCount +
                     ", scheduleBackup=" + scheduleBackup +
                     ", prune=" + prune +
                     ", database=" + database +
