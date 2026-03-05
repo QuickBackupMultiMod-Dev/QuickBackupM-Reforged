@@ -39,7 +39,7 @@ public class BackupManager {
             try {
                 Files.createDirectories(path);
             } catch (IOException e) {
-                QuickbackupmultiReforged.logger.error("Create backup path error: {}", e.getMessage());
+                logger.error("Create backup path error: {}", e.getMessage());
             }
         }
         return path;
@@ -48,7 +48,11 @@ public class BackupManager {
     public static List<StorageInfo> getBackupsList() {
         List<StorageInfo> backupList;
         if (!QuickbackupmultiReforged.getModConfig().isCacheDatabase()) {
-            backupList = QuickbackupmultiReforged.getDatabase().getAllStorageInfo();
+            backupList = QuickbackupmultiReforged.getDatabase()
+                .getAllStorageInfo()
+                .stream()
+                .filter(StorageInfo::getUseIncrementalStorage)
+                .toList();
         } else {
             backupList = DatabaseCache.getStorageInfoCaches();
         }
@@ -77,6 +81,48 @@ public class BackupManager {
             }
         }
         return -1;
+    }
+
+    private static void makeFullBackup() {
+        if (QuickbackupmultiReforged.getModConfig().getFullBackupInterval() == -1) {
+            return;
+        }
+
+        if (!getBackupPath().resolve("full").toFile().exists()) {
+            logger.info("Do not have a full backup, make a full backup for future use...");
+            QuickbackupmultiReforged.getManager().fullStorage(
+                "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
+                "Full backup",
+                QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile(),
+                fileFilter,
+                folderFilter
+            );
+        } else {
+            List<StorageInfo> storageInfoList = QuickbackupmultiReforged.getDatabase().getAllStorageInfo();
+            List<StorageInfo> incrementalBackups = storageInfoList.stream().filter(StorageInfo::getUseIncrementalStorage).toList();
+            List<StorageInfo> fullBackups = storageInfoList.stream().filter(it -> !it.getUseIncrementalStorage()).toList();
+            if (!incrementalBackups.isEmpty() && incrementalBackups.size() % QuickbackupmultiReforged.getModConfig().getFullBackupInterval() == 0) {
+                if (fullBackups.size() >= QuickbackupmultiReforged.getModConfig().getSaveFullBackupCount()) {
+                    fullBackups.stream().min(Comparator.comparingLong(StorageInfo::getTimestamp))
+                        .ifPresent(oldestFullBackup -> {
+                            try {
+                                logger.info("Delete oldest full backup: {}", oldestFullBackup.getName());
+                                FileUtils.deleteDirectory(getBackupPath().resolve("full").resolve(oldestFullBackup.getName()).toFile());
+                            } catch (IOException e) {
+                                logger.error("delete oldest full backup failed: ", e);
+                            }
+                        });
+                }
+                logger.info("Make a full backup for future use...");
+                QuickbackupmultiReforged.getManager().fullStorage(
+                    "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
+                    "Full backup",
+                    QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile(),
+                    fileFilter,
+                    folderFilter
+                );
+            }
+        }
     }
 
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
@@ -113,15 +159,17 @@ public class BackupManager {
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
+        } finally {
+            makeFullBackup();
         }
     }
 
     public static void makeTempBackup() {
-        QuickbackupmultiReforged.logger.info("Make a temp backup...");
+        logger.info("Make a temp backup...");
         QuickbackupmultiReforged.getManager().incrementalStorageTemp(
             QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile(), fileFilter, folderFilter
         );
-        QuickbackupmultiReforged.logger.info("Make a temp backup success.");
+        logger.info("Make a temp backup success.");
     }
 
     public static boolean deleteBackup(CommandSourceStack commandSource, String name) {
@@ -183,7 +231,7 @@ public class BackupManager {
                 database.deleteTableValue(storageInfo.getName(), DatabaseTables.STORAGE_INFO);
             }
         } catch (IOException e) {
-            QuickbackupmultiReforged.logger.error("Delete Failed", e);
+            logger.error("Delete Failed", e);
         } finally {
             database.closeDatabase();
         }

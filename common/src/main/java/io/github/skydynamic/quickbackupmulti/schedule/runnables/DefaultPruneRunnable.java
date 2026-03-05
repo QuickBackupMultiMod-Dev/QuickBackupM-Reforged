@@ -38,7 +38,7 @@ public class DefaultPruneRunnable implements Runnable {
     }
 
     private static void defaultPruneRegularBackup(PruneScheduleConfig config, CommandSourceStack commandSourceStack) {
-        List<StorageInfo> backupList = QuickbackupmultiReforged.getDatabase().getAllStorageInfo();
+        List<StorageInfo> backupList = BackupManager.getBackupsList();
         List<StorageInfo> toDelete = filterBackupWithPbs(config.getRegularBackup(), backupList, config.getTimezoneOverride());
         toDelete.forEach(backup -> BackupManager.deleteBackup(commandSourceStack, backup.getName()));
 
