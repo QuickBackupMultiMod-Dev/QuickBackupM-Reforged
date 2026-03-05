@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "quickbakcupmulti_reforged",
+  "id": "quickbackupmulti_reforged",
   "version": "${version}",
-  "name": "QuickBakcupMulti",
+  "name": "QuickBackupMulti",
   "description": "A backup / restore mod, with multiple backup slots",
   "authors": [
     "SkyDynamic"
@@ -11,19 +11,19 @@
     "homepage": "https://github.com/QuickBackupMultiMod-Dev/QuickBackupM-Reforged"
   },
   "license": "LGPL-3.0",
-  "icon": "assets/quickbakcupmulti/icon.png",
+  "icon": "assets/quickbackupmulti/icon.png",
   "accessWidener": "qbm.accesswidener",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "io.github.skydynamic.quickbakcupmulti.fabric.QuickbackupmultiReforgedFabric"
+      "io.github.skydynamic.quickbackupmulti.fabric.QuickbackupmultiReforgedFabric"
     ],
     "client": [
-      "io.github.skydynamic.quickbakcupmulti.fabric.client.QuickbakcupmultiReforgedFabricClient"
+      "io.github.skydynamic.quickbackupmulti.fabric.client.QuickbackupmultiReforgedFabricClient"
     ]
   },
   "mixins": [
-    "quickbakcupmulti.mixins.json"
+    "quickbackupmulti.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.16.10",

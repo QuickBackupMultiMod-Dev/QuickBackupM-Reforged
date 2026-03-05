@@ -4,7 +4,7 @@ loaderVersion = "[2,)"
 license = "GNU LGPL 3.0"
 
 [[mods]]
-modId = "quickbakcupmulti_reforged"
+modId = "quickbackupmulti_reforged"
 version = "${version}"
 displayName = "QuickBakcupMulti-Reforged"
 authors = "SkyDynamic"
@@ -13,14 +13,14 @@ A backup / restore mod, with multiple backup slots
 '''
 #logoFile = ""
 
-[[dependencies.quickbakcupmulti_reforged]]
+[[dependencies.quickbackupmulti_reforged]]
 modId = "neoforge"
 type = "required"
 versionRange = "[21,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.quickbakcupmulti_reforged]]
+[[dependencies.quickbackupmulti_reforged]]
 modId = "minecraft"
 type = "required"
 versionRange = "~1.20.2"
@@ -29,7 +29,7 @@ side = "BOTH"
 
 
 [[mixins]]
-config = "quickbakcupmulti.mixins.json"
+config = "quickbackupmulti.mixins.json"
 
 [[mixins]]
-config = "quickbakcupmulti-neoforge.mixins.json"
+config = "quickbackupmulti-neoforge.mixins.json"
