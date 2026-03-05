@@ -1,0 +1,48 @@
+package io.github.skydynamic.quickbackupmulti.command;
+
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
+import io.github.skydynamic.quickbackupmulti.DatabaseCache;
+import io.github.skydynamic.quickbackupmulti.QuickbackupmultiReforged;
+import io.github.skydynamic.quickbackupmulti.utils.BackupManager;
+import io.github.skydynamic.quickbackupmulti.utils.permission.PermissionManager;
+import io.github.skydynamic.quickbackupmulti.utils.permission.PermissionType;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
+
+import static io.github.skydynamic.quickbackupmulti.translate.Translate.tr;
+
+public class DeleteCommand {
+    public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("delete")
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_GAMEMASTER, PermissionType.HELPER))
+        .then(Commands.argument("name", StringArgumentType.string())
+            .suggests(((context, builder) -> {
+                for (StorageInfo info : BackupManager.getBackupsList()) {
+                    if (info.getName().contains(builder.getRemaining())) {
+                        builder.suggest(info.getName());
+                    }
+                }
+                return builder.buildFuture();
+            }))
+            .executes(it ->
+                deleteBackup(it.getSource(), StringArgumentType.getString(it, "name"))
+            )
+        );
+
+    private static int deleteBackup(CommandSourceStack commandSource, String name) {
+        new ModCommand.CmdExecuteThread(() -> {
+            if (BackupManager.deleteBackup(commandSource, name)) {
+                commandSource.sendSystemMessage(Component.literal(tr("quickbackupmulti.delete.success", name)));
+                if (QuickbackupmultiReforged.getModConfig().isCacheDatabase()) {
+                    DatabaseCache.updateStorageInfoCaches();
+                }
+            } else {
+                commandSource.sendSystemMessage(Component.literal(tr("quickbackupmulti.delete.fail", name)));
+            }
+        });
+        return 0;
+    }
+}
