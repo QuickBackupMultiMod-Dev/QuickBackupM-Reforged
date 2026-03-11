@@ -134,11 +134,13 @@ public class BackupManager {
         try {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.start")));
             MinecraftServer server = commandSource.getServer();
-            server.executeIfPossible(() -> server.saveEverything(true, true, true));
-            for (ServerLevel serverLevel : server.getAllLevels()) {
-                if (serverLevel == null || serverLevel.noSave) continue;
-                serverLevel.noSave = true;
-            }
+            server.executeBlocking(() -> {
+                server.saveEverything(true, true, true);
+                for (ServerLevel serverLevel : server.getAllLevels()) {
+                    if (serverLevel == null || serverLevel.noSave) continue;
+                    serverLevel.noSave = true;
+                }
+            });
 
             QuickbackupmultiReforged.getManager().incrementalStorage(
                 name,
@@ -152,10 +154,12 @@ public class BackupManager {
             double intervalTime = (endTime - startTime) / 1000.0;
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
 
-            for (ServerLevel serverLevel : server.getAllLevels()) {
-                if (serverLevel == null || !serverLevel.noSave) continue;
-                serverLevel.noSave = false;
-            }
+            server.executeBlocking(() -> {
+                for (ServerLevel serverLevel : server.getAllLevels()) {
+                    if (serverLevel == null || !serverLevel.noSave) continue;
+                    serverLevel.noSave = false;
+                }
+            });
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
