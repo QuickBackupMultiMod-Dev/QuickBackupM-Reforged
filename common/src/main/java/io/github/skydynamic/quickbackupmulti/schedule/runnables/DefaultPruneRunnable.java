@@ -10,6 +10,7 @@ import net.minecraft.commands.CommandSourceStack;
 
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.Function;
 
 public class DefaultPruneRunnable implements Runnable {
     private final PruneScheduleConfig config;
@@ -58,62 +59,59 @@ public class DefaultPruneRunnable implements Runnable {
 
         ZoneId zoneId = timezoneOverride != null ? ZoneId.of(timezoneOverride) : ZoneId.systemDefault();
 
-        List<StorageInfo> filteredList = new ArrayList<>(backupList);
-        filteredList.sort(Comparator.comparingLong(StorageInfo::getTimestamp));
+        List<StorageInfo> sortedBackups = new ArrayList<>(backupList);
+        sortedBackups.sort(Comparator.comparingLong(StorageInfo::getTimestamp).reversed());
+        ListIterator<StorageInfo> backupIterator = sortedBackups.listIterator();
 
-        List<StorageInfo> toDelete = new ArrayList<>();
+        List<StorageInfo> keepList = new ArrayList<>();
+        applyPbsPolicy(pbsConfig.getLast(), backupIterator, keepList, StorageInfo::getName);
+        applyPbsPolicy(pbsConfig.getHour(), backupIterator, keepList, b -> DurationUtils.formatByUnit(b.getTimestamp(), "hour", zoneId));
+        applyPbsPolicy(pbsConfig.getDay(), backupIterator, keepList, b -> DurationUtils.formatByUnit(b.getTimestamp(), "day", zoneId));
+        applyPbsPolicy(pbsConfig.getWeek(), backupIterator, keepList, b -> DurationUtils.formatByUnit(b.getTimestamp(), "week", zoneId));
+        applyPbsPolicy(pbsConfig.getMonth(), backupIterator, keepList, b -> DurationUtils.formatByUnit(b.getTimestamp(), "month", zoneId));
+        applyPbsPolicy(pbsConfig.getYear(), backupIterator, keepList, b -> DurationUtils.formatByUnit(b.getTimestamp(), "year", zoneId));
 
-        Map<String, Integer> timeUnits = Map.of(
-            "hour", pbsConfig.getHour(),
-            "day", pbsConfig.getDay(),
-            "week", pbsConfig.getWeek(),
-            "month", pbsConfig.getMonth(),
-            "year", pbsConfig.getYear()
-        );
-
-        for (Map.Entry<String, Integer> entry : timeUnits.entrySet()) {
-            String unit = entry.getKey();
-            int count = entry.getValue();
-            if (count <= 0) continue;
-
-            Map<String, StorageInfo> latestPerUnit = new HashMap<>();
-            for (StorageInfo backup : filteredList) {
-                String key = DurationUtils.formatByUnit(backup.getTimestamp(), unit, zoneId);
-                if (!latestPerUnit.containsKey(key)) {
-                    latestPerUnit.put(key, backup);
-                } else if (backup.getTimestamp() > latestPerUnit.get(key).getTimestamp()) {
-                    toDelete.add(latestPerUnit.get(key));
-                    latestPerUnit.put(key, backup);
-                } else {
-                    toDelete.add(backup);
-                }
-            }
-            filteredList.removeAll(latestPerUnit.values());
-        }
-
-        if (pbsConfig.getLast() > 0 && filteredList.size() > pbsConfig.getLast()) {
-            int keepCount = pbsConfig.getLast();
-            List<StorageInfo> toKeep = filteredList.subList(filteredList.size() - keepCount, filteredList.size());
-            Set<StorageInfo> toKeepSet = new HashSet<>(toKeep);
-            toDelete.addAll(filteredList.stream().filter(b -> !toKeepSet.contains(b)).toList());
-        }
+        // keepList.sort(Comparator.comparingLong(StorageInfo::getTimestamp).reversed());
 
         if (pbsConfig.getMaxLifeTime() != null && !pbsConfig.getMaxLifeTime().equals("0s")) {
             long maxLifeTimeMillis = DurationUtils.parseDurationToSeconds(pbsConfig.getMaxLifeTime()) * 1000;
             long now = System.currentTimeMillis();
-            List<StorageInfo> expired = filteredList.stream()
-                    .filter(b -> now - b.getTimestamp() > maxLifeTimeMillis)
-                    .toList();
-            toDelete.addAll(expired);
-            filteredList.removeAll(expired);
+            keepList.removeIf(backup -> now - backup.getTimestamp() > maxLifeTimeMillis);
         }
 
-        if (pbsConfig.getMaxAmount() > 0 && filteredList.size() > pbsConfig.getMaxAmount()) {
-            int removeCount = filteredList.size() - pbsConfig.getMaxAmount();
-            toDelete.addAll(filteredList.subList(0, removeCount));
+        if (pbsConfig.getMaxAmount() > 0 && keepList.size() > pbsConfig.getMaxAmount()) {
+            keepList.subList(pbsConfig.getMaxAmount(), keepList.size()).clear();
         }
 
+        List<StorageInfo> toDelete = new ArrayList<>(sortedBackups);
+        // I'm too lazy to write a double pointer.
+        toDelete.removeAll(new HashSet<>(keepList));
         return toDelete;
+    }
+
+    private static void applyPbsPolicy(int limit, ListIterator<StorageInfo> backupIterator, List<StorageInfo> keepList, Function<StorageInfo, String> bucketMapper) {
+        Set<String> keepBuckets = new HashSet<>();
+        for (StorageInfo kept : keepList) {
+            String key = bucketMapper.apply(kept);
+            keepBuckets.add(key);
+        }
+
+        int count = 0;
+        while (backupIterator.hasNext()) {
+            StorageInfo backup = backupIterator.next();
+
+            String key = bucketMapper.apply(backup);
+            if (keepBuckets.contains(key))
+                continue;
+            if (count >= limit && limit >= 0) {
+                backupIterator.previous();
+                break;
+            }
+
+            keepBuckets.add(key);
+            keepList.add(backup);
+            count++;
+        }
     }
 
     @FunctionalInterface
