@@ -1,0 +1,61 @@
+// Merges the common access widener with the platform-specific one before
+// compilation, so that shared + platform-only entries take effect both at
+// compile time (via loom) and at runtime (bundled into the jar).
+//
+// Applied per subproject from the root build.gradle.
+
+def commonAwFile = project(":${mod_id}-common").file("src/main/resources/qbm.accesswidener")
+def platformAwFile = project.file("src/main/resources/qbm.accesswidener")
+def isCommon = project.path == ":${mod_id}-common"
+def usesMergedAw = !isCommon && platformAwFile.exists()
+def mergedAwFile = layout.buildDirectory.file("generated/accesswidener/qbm.accesswidener").get().asFile
+
+def mergeAccessWidener = {
+    String header = "accessWidener v2 official"
+    def entries = new LinkedHashSet<String>()
+    [commonAwFile, platformAwFile].each { awFile ->
+        if (!awFile.exists()) return
+        awFile.eachLine { rawLine ->
+            def line = rawLine.replaceAll(/#.*$/, "").trim()
+            if (line.isEmpty()) return
+            if (line.startsWith("accessWidener")) {
+                header = line
+            } else {
+                entries.add(line)
+            }
+        }
+    }
+    mergedAwFile.parentFile.mkdirs()
+    mergedAwFile.setText(([header] + entries.toList()).join("\n") + "\n", "UTF-8")
+}
+
+loom {
+    if (usesMergedAw) {
+        mergeAccessWidener()   // eager, so the path already exists during configuration
+        accessWidenerPath = mergedAwFile
+    } else {
+        accessWidenerPath = commonAwFile
+    }
+}
+
+if (usesMergedAw) {
+    // Regenerate during execution so `clean build` (which wipes build/) stays correct.
+    def generateMergedAccessWidener = tasks.register("generateMergedAccessWidener") {
+        inputs.files(commonAwFile, platformAwFile)
+        outputs.file(mergedAwFile)
+        doLast { mergeAccessWidener() }
+    }
+
+    // Everything that reads the widener must wait for it to be (re)generated.
+    tasks.matching {
+        it.name in ["compileJava", "processResources", "validateAccessWidener"] || it.name.startsWith("remap")
+    }.configureEach {
+        dependsOn(generateMergedAccessWidener)
+    }
+
+    // Bundle the merged widener into the jar, overwriting the platform-only source copy.
+    tasks.named("processResources").configure {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        from(mergedAwFile)
+    }
+}
