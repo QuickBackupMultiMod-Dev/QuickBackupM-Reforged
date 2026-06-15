@@ -1,0 +1,42 @@
+// Keeps the libs directories tidy:
+//   - wipes stale jars from this module's build/libs before each compile;
+//   - copies the loader modules' release jars up to the root build/libs.
+//
+// Applied per subproject from the root build.gradle.
+
+beforeEvaluate {
+    tasks.register("cleanBuildLibs") {
+        doFirst {
+            def libsDir = layout.buildDirectory.dir("libs").get().asFile
+            if (libsDir.exists()) {
+                libsDir.listFiles().each { it.delete() }
+            }
+        }
+    }
+
+    tasks.compileJava.dependsOn(cleanBuildLibs)
+}
+
+afterEvaluate {
+    def rootLibsDir = rootProject.layout.buildDirectory.dir("libs").get().asFile
+    rootLibsDir.mkdirs()
+
+    tasks.register("copyJarsToRootLibs") {
+        if (project.name.contains("neoforge") || project.name.contains("fabric")) {
+            doLast {
+                def libsDir = layout.buildDirectory.dir("libs").get().asFile
+                if (libsDir.exists()) {
+                    libsDir.listFiles().findAll { file ->
+                        file.name.endsWith(".jar") &&
+                            !file.name.contains("dev") &&
+                            !file.name.contains("source")
+                    }.each { jar ->
+                        ant.copy(file: jar, todir: rootLibsDir)
+                    }
+                }
+            }
+        }
+    }
+
+    tasks.build.finalizedBy(copyJarsToRootLibs)
+}
