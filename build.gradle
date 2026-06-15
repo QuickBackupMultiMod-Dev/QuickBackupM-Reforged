@@ -23,6 +23,39 @@ ext {
         }
         return versionSuffix
     }
+
+    // Convert the single source of truth `minecraft_supported_versions` (a Maven
+    // version range, e.g. "[1.21.11, )") into each loader's expected range syntax.
+
+    // Fabric uses npm-semver style predicates; space-separated = AND.
+    //   [1.21.11, )   -> ">=1.21.11"
+    //   [1.21, 1.22)  -> ">=1.21 <1.22"
+    minecraftFabricRange = { String rawSpec ->
+        String spec = rawSpec.trim()
+        if (!(spec.startsWith("[") || spec.startsWith("("))) {
+            // A bare version in Maven means ">= version".
+            return ">=" + spec
+        }
+        def matcher = spec =~ /^([\[(])\s*([^,\]\)]*)\s*,\s*([^,\]\)]*)\s*([\])])$/
+        if (!matcher.matches()) {
+            throw new GradleException("Cannot convert minecraft_supported_versions '${rawSpec}' to a Fabric range. " +
+                "Use a single Maven interval such as [1.21.11, ) or [1.21, 1.22).")
+        }
+        boolean lowerInclusive = matcher.group(1) == "["
+        String lower = matcher.group(2).trim()
+        String upper = matcher.group(3).trim()
+        boolean upperInclusive = matcher.group(4) == "]"
+        def predicates = []
+        if (lower) predicates << ((lowerInclusive ? ">=" : ">") + lower)
+        if (upper) predicates << ((upperInclusive ? "<=" : "<") + upper)
+        return predicates.isEmpty() ? "*" : predicates.join(" ")
+    }
+
+    // NeoForge consumes Maven ranges directly; only normalise whitespace
+    //   "[1.21.11, )" -> "[1.21.11,)"
+    minecraftNeoForgeRange = { String rawSpec ->
+        return rawSpec.trim().replaceAll(/\s+/, "")
+    }
 }
 
 architectury {
@@ -80,9 +113,8 @@ subprojects {
     group = project.maven_group
     archivesBaseName = project.archives_name + "-mc" + project.minecraft_version + "-$project.name".replace("${mod_id}-", "")
 
-    loom {
-        accessWidenerPath = project(":${mod_id}-common").file("src/main/resources/qbm.accesswidener")
-    }
+    // Access widener: merge common + platform before compiling (loom-agnostic).
+    apply from: rootProject.file("gradle/accesswidener.gradle")
 
     java {
         withSourcesJar()
