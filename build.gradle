@@ -1,11 +1,15 @@
 plugins {
-    id "dev.architectury.loom" version "1.13-SNAPSHOT" apply false
-    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom-no-remap" version "1.14-SNAPSHOT" apply false
+    id "architectury-plugin" version "3.5-SNAPSHOT"
     id "com.github.johnrengelman.shadow" version "8.1.1" apply false
 
+    id "java"
     id "maven-publish"
 }
 
+// ---------------------------------------------------------------------------
+// Version suffix derived from CI build metadata.
+// ---------------------------------------------------------------------------
 ext {
     getVersionSuffix = {
         String versionSuffix = ""
@@ -34,108 +38,67 @@ allprojects {
     version = rootProject.mod_version
 }
 
+jar {
+    archiveClassifier = "raw"
+}
+
+// ---------------------------------------------------------------------------
+// Shared configuration for every platform / common subproject.
+// ---------------------------------------------------------------------------
 subprojects {
-    apply plugin: "dev.architectury.loom"
+    apply plugin: "dev.architectury.loom-no-remap"
     apply plugin: "architectury-plugin"
     apply plugin: "maven-publish"
 
+    // -- Coordinates ----------------------------------------------------------
+    version = project.mod_version + project.getVersionSuffix()
+    group = project.maven_group
+    base.archivesName = project.archives_name +
+        "-mc" + project.minecraft_version +
+        "-" + project.name.replace("${mod_id}-", "")
+
+    // -- Repositories ---------------------------------------------------------
     repositories {
         mavenLocal()
-        maven {
-            name = 'ParchmentMC'
-            url = 'https://maven.parchmentmc.org'
-        }
         maven {
             name "CjsahMaven"
             url "https://server.cjsah.net:1002/maven/"
         }
     }
 
+    // -- Shared dependencies --------------------------------------------------
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
-        mappings loom.layered() {
-            officialMojangMappings()
-            parchment("org.parchmentmc.data:parchment-1.21.10:2025.10.12@zip")
-        }
 
-        // incremental storage
+        // Incremental storage
         implementation("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
         implementation("org.jetbrains.exposed:exposed-core:0.57.0")
         implementation("org.jetbrains.exposed:exposed-jdbc:0.57.0")
         implementation("com.h2database:h2:2.2.224")
 
-        // https://mvnrepository.com/artifact/org.quartz-scheduler/quartz
+        // Scheduler — https://mvnrepository.com/artifact/org.quartz-scheduler/quartz
         implementation("org.quartz-scheduler:quartz:2.5.0")
 
-        // lombok
-        compileOnly("org.projectlombok:lombok:1.18.30")
-        annotationProcessor("org.projectlombok:lombok:1.18.30")
+        // Lombok
+        compileOnly("org.projectlombok:lombok:1.18.46")
+        annotationProcessor("org.projectlombok:lombok:1.18.46")
     }
 
-    String versionSuffix = project.getVersionSuffix()
-
-    String fullModVersion = project.mod_version + versionSuffix
-
-    version = fullModVersion
-    group = project.maven_group
-    archivesBaseName = project.archives_name + "-mc" + project.minecraft_version + "-$project.name".replace("${mod_id}-", "")
-
-    loom {
-        accessWidenerPath = project(":${mod_id}-common").file("src/main/resources/qbm.accesswidener")
-    }
-
+    // -- Java toolchain -------------------------------------------------------
     java {
         withSourcesJar()
 
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     tasks.withType(JavaCompile).configureEach {
-        it.options.release = 21
+        options.release = 25
     }
 
-    beforeEvaluate {
-        tasks.register('cleanBuildLibs') {
-            doFirst {
-                def libsDir = project.projectDir.toPath().resolve("build/libs").toFile()
-                if (libsDir.exists()) {
-                    libsDir.listFiles().each { file ->
-                        file.delete()
-                    }
-                }
-            }
-        }
+    // -- Access widener: merge common + platform before compiling -------------
+    apply from: rootProject.file("gradle/accesswidener.gradle")
 
-        tasks.build.dependsOn(cleanBuildLibs)
-        tasks.remapJar.dependsOn(cleanBuildLibs)
-    }
-
-    afterEvaluate {
-        def targetLibsDir = rootProject.file("build/libs")
-
-        if (!targetLibsDir.exists()) {
-            targetLibsDir.mkdirs()
-        }
-
-        tasks.register('copyJarsToRootLibs') {
-            if (project.name.contains("neoforge") || project.name.contains("fabric")) {
-                doLast {
-                    def sourceLibsDir = project.projectDir.toPath().resolve("build/libs").toFile()
-                    if (sourceLibsDir.exists()) {
-                        sourceLibsDir.listFiles().each { file ->
-                            if (file.name.endsWith('.jar')
-                                    && !file.name.contains('dev')
-                                    && !file.name.contains('source')) {
-                                ant.copy(file: file, todir: targetLibsDir)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        tasks.build.finalizedBy(copyJarsToRootLibs)
-        tasks.remapJar.finalizedBy(copyJarsToRootLibs)
-    }
+    // -- build/libs housekeeping ----------------------------------------------
+    apply from: rootProject.file("gradle/libs-output.gradle")
 }

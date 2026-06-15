@@ -2,10 +2,11 @@ package io.github.skydynamic.quickbackupmulti.client.screen;
 
 import io.github.skydynamic.quickbackupmulti.translate.Translate;
 import lombok.Setter;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NonNull;
 
 public class RestoreScreen extends Screen {
     private final Button cancelButton;
@@ -27,11 +28,11 @@ public class RestoreScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        super.render(guiGraphics, mouseX, mouseY, delta);
+    public void extractRenderState(@NonNull GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(guiGraphics, mouseX, mouseY, delta);
         int centerX = this.width / 2;
         int centerY = this.height / 2;
-        guiGraphics.drawCenteredString(font, Component.nullToEmpty(this.state), centerX, centerY - 20, 0xFFFFFF);
+        guiGraphics.centeredText(font, Component.nullToEmpty(this.state), centerX, centerY - 20, 0xFFFFFF);
         drawProgressBar(
                 guiGraphics,
                 centerX - 70,
@@ -39,7 +40,7 @@ public class RestoreScreen extends Screen {
                 centerX + 70,
                 centerY + 5
         );
-        guiGraphics.drawCenteredString(
+        guiGraphics.centeredText(
                 font,
                 Component.nullToEmpty(Translate.tr("quickbackupmulti.screen.restore_screen.progress", this.getPercentString())),
                 centerX,
@@ -62,7 +63,7 @@ public class RestoreScreen extends Screen {
         return String.format("%.2f", this.progress * 100);
     }
 
-    private void drawProgressBar(GuiGraphics guiGraphics, int x0, int y0, int x1, int y1) {
+    private void drawProgressBar(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1) {
         int barX0 = x0 + 2;
         int barY0 = y0 + 2;
         int barX1 = x0 + (int) ((x1 - x0) * progress);
@@ -81,16 +82,16 @@ public class RestoreScreen extends Screen {
             p = 1 - p;
         }
 
-        int r = (int) (255d * (Math.max(0, Math.min(2 - 2 * p, 1))));
-        int g = (int) (255d * (Math.max(0, Math.min(2 * p, 1))));
+        int r = (int) (255d * (Math.clamp(2 - 2 * p, 0, 1)));
+        int g = (int) (255d * (Math.clamp(2 * p, 0, 1)));
 
         return 0xFF000000 + (r << 16) + (g << 8);
     }
 
     @Override
-    public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
-        this.renderPanorama(guiGraphics, f);
-        this.renderBlurredBackground(guiGraphics);
-        this.renderMenuBackground(guiGraphics);
+    public void extractBackground(@NonNull GuiGraphicsExtractor guiGraphics, int i, int j, float f) {
+        this.extractPanorama(guiGraphics, f);
+        this.extractBlurredBackground(guiGraphics);
+        this.extractMenuBackground(guiGraphics);
     }
 }

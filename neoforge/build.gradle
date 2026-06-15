@@ -35,7 +35,7 @@ repositories {
 dependencies {
     neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
 
-    common(project(path: ":${mod_id}-common", configuration: "namedElements")) { transitive false }
+    common(project(path: ":${mod_id}-common")) { transitive false }
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionNeoForge")
 
     forgeRuntimeLibrary("org.quartz-scheduler:quartz:2.5.0")
@@ -64,10 +64,11 @@ processResources {
 }
 
 shadowJar {
-    configurations = [project.configurations.shadowBundle]
-    archiveClassifier = "dev-shadow"
-}
+    dependsOn(jar)
+    mainSpec.sourcePaths.clear()
+    from(zipTree(jar.archiveFile))
 
-remapJar {
-    input.set shadowJar.archiveFile
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = null
+    from rootProject.file("LICENSE.md")
 }
