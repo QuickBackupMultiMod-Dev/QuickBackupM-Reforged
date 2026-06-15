@@ -49,10 +49,13 @@ dependencies {
 }
 
 processResources {
+    def minecraftRange = minecraftFabricRange(project.minecraft_supported_versions)
+
     inputs.property "version", project.version
+    inputs.property "minecraft_range", minecraftRange
 
     filesMatching("fabric.mod.json") {
-        expand version: project.version
+        expand version: project.version, minecraft_range: minecraftRange
     }
 }
 
