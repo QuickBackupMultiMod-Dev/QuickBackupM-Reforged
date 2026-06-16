@@ -56,6 +56,7 @@ jobs:
             !./*/build/libs/*shadow*.jar
             !./*/build/libs/*source*.jar
             !./common/build/libs/
+            !./cli/build/libs/
 
   summary:
     runs-on: ubuntu-22.04

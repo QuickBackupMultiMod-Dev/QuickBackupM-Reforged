@@ -1,0 +1,55 @@
+apply plugin: "java"
+apply plugin: "application"
+apply plugin: "com.github.johnrengelman.shadow"
+
+archivesBaseName = project.archives_name + "-cli"
+
+application {
+    mainClass = "io.github.skydynamic.quickbackupmulti.cli.QbmCli"
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven {
+        name "CjsahMaven"
+        url "https://server.cjsah.net:1002/maven/"
+    }
+}
+
+dependencies {
+    // Same pure-Java backup/storage stack the mod uses — no Minecraft.
+    implementation("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
+    implementation("org.jetbrains.exposed:exposed-core:0.57.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.57.0")
+    implementation("com.h2database:h2:2.2.224")
+
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("commons-io:commons-io:2.16.1")
+
+    // SLF4J binding so library log messages (and errors) are actually printed instead of the "no providers" notice.
+    implementation("org.slf4j:slf4j-simple:2.0.13")
+
+    // CLI argument parsing
+    implementation("info.picocli:picocli:4.7.6")
+    annotationProcessor("info.picocli:picocli-codegen:4.7.6")
+
+    compileOnly("org.projectlombok:lombok:1.18.30")
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+shadowJar {
+    archiveClassifier = ""
+    mergeServiceFiles()
+}
+
+build.dependsOn(shadowJar)

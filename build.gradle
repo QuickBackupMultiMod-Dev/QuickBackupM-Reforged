@@ -68,6 +68,12 @@ allprojects {
 }
 
 subprojects {
+    // The standalone CLI module is a plain-Java application (no Minecraft / Loom / Architectury).
+    // It carries its own build.gradle, so skip all Minecraft-specific wiring for it.
+    if (project.name.endsWith("-cli")) {
+        return
+    }
+
     apply plugin: "dev.architectury.loom"
     apply plugin: "architectury-plugin"
     apply plugin: "maven-publish"
