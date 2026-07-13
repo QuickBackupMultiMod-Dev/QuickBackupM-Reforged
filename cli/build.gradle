@@ -34,8 +34,9 @@ dependencies {
     implementation("info.picocli:picocli:4.7.6")
     annotationProcessor("info.picocli:picocli-codegen:4.7.6")
 
-    compileOnly("org.projectlombok:lombok:1.18.30")
-    annotationProcessor("org.projectlombok:lombok:1.18.30")
+    // Interactive terminal UI (raw-mode key reading + cursor control) for the arrow-key/WASD menus.
+    // Works across cmd.exe, PowerShell and Windows Terminal without any hand-rolled Win32 console code.
+    implementation("org.jline:jline:3.30.0")
 }
 
 java {
@@ -51,5 +52,8 @@ shadowJar {
     archiveClassifier = ""
     mergeServiceFiles()
 }
+
+distZip.enabled = false
+distTar.enabled = false
 
 build.dependsOn(shadowJar)

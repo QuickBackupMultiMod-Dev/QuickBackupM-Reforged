@@ -36,15 +36,10 @@ public class CommonOptions {
 
     /**
      * Resolve the configured options into a connected {@link BackupTarget}. Caller is responsible for closing it.
+     * Requires exactly one of {@code --server} / {@code --world}.
      */
     BackupTarget open() throws IOException {
-        String resolvedStoragePath = storagePath;
-        if (resolvedStoragePath == null || resolvedStoragePath.isBlank()) {
-            if (config == null) {
-                throw new IllegalArgumentException("Either --storage-path or --config must be provided.");
-            }
-            resolvedStoragePath = CliConfig.readStoragePath(config);
-        }
+        Path resolved = resolveStoragePath();
 
         if (server == (world != null)) {
             throw new IllegalArgumentException("Specify exactly one of --server or --world <name>.");
@@ -53,6 +48,36 @@ public class CommonOptions {
         String collectionName = server ? "server" : world;
         String levelId = server ? "" : world;
 
-        return BackupTarget.open(Path.of(resolvedStoragePath), collectionName, levelId);
+        return BackupTarget.open(resolved, collectionName, levelId);
+    }
+
+    /** Resolve the storage directory from {@code --storage-path} (preferred) or {@code --config}. */
+    Path resolveStoragePath() throws IOException {
+        String resolvedStoragePath = storagePath;
+        if (resolvedStoragePath == null || resolvedStoragePath.isBlank()) {
+            if (config == null) {
+                throw new IllegalArgumentException("Either --storage-path or --config must be provided.");
+            }
+            resolvedStoragePath = CliConfig.readStoragePath(config);
+        }
+        return Path.of(resolvedStoragePath);
+    }
+
+    /** Whether the user pinned a specific collection on the command line (so no interactive pick is needed). */
+    boolean hasExplicitCollection() {
+        return server || world != null;
+    }
+
+    /** The collection explicitly named on the command line, or {@code null} if none was given. */
+    CollectionInfo explicitCollection() {
+        if (!hasExplicitCollection()) {
+            return null;
+        }
+        if (server == (world != null)) {
+            throw new IllegalArgumentException("Specify at most one of --server or --world <name>.");
+        }
+        return server
+            ? new CollectionInfo("server", "", true, 0)
+            : new CollectionInfo(world, world, false, 0);
     }
 }
