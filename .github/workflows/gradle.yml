@@ -6,14 +6,18 @@ on:
       - "*.gradle"
       - "gradle.properties"
       - "*/src/**"
-      - ".github/**"
+      - ".github/workflows/build.yml"
+      - ".github/workflows/gradle.yml"
+      - ".github/workflows/scripts/**"
 
   pull_request:
     paths:
       - "*.gradle"
       - "gradle.properties"
       - "*/src/**"
-      - ".github/**"
+      - ".github/workflows/build.yml"
+      - ".github/workflows/gradle.yml"
+      - ".github/workflows/scripts/**"
 
 
 jobs:
