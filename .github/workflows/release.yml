@@ -54,32 +54,55 @@ jobs:
               exit 1
           fi
 
-  matrix_prep:
-    uses: ./.github/workflows/matrix_prep.yml
+  branch_matrix_prep:
+    uses: ./.github/workflows/branch_matrix_prep.yml
 
   build_release:
     if: ${{ (github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true') }}
+    needs:
+      - generate_release_info
+      - branch_matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.branch_matrix_prep.outputs.branch_matrix) }}
+    continue-on-error: true
     uses: ./.github/workflows/build.yml
     with:
       release: true
       tag: ${{ needs.generate_release_info.outputs.tag_name }}
+      ref: ${{ matrix.branch }}
+      java_version: ${{ matrix.java }}
+      build_task: ${{ matrix.build_task }}
+      artifact_name: build-artifacts-${{ matrix.branch }}
 
   build_alpha:
     if: ${{ !((github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true')) }}
+    needs:
+      - generate_release_info
+      - branch_matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.branch_matrix_prep.outputs.branch_matrix) }}
+    continue-on-error: true
     uses: ./.github/workflows/build.yml
     with:
       tag: ${{ needs.generate_release_info.outputs.tag_name }}
+      ref: ${{ matrix.branch }}
+      java_version: ${{ matrix.java }}
+      build_task: ${{ matrix.build_task }}
+      artifact_name: build-artifacts-${{ matrix.branch }}
 
   release:
+    if: ${{ always() && ((github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true')) && (needs.build_release.result == 'success' || needs.build_release.result == 'failure') }}
     needs:
-      - matrix_prep
+      - branch_matrix_prep
       - build_release
       - generate_release_info
     uses: ./.github/workflows/publish.yml
     with:
       target-tag: ${{ needs.generate_release_info.outputs.tag_name }}
       version-type: release
-      matrix: ${{ needs.matrix_prep.outputs.matrix }}
+      matrix: ${{ needs.branch_matrix_prep.outputs.publish_matrix }}
     secrets:
       GT: ${{ secrets.GITHUB_TOKEN }}
       CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
@@ -88,15 +111,16 @@ jobs:
       contents: write
 
   release_alpha:
+    if: ${{ always() && !((github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true')) && (needs.build_alpha.result == 'success' || needs.build_alpha.result == 'failure') }}
     needs:
-      - matrix_prep
+      - branch_matrix_prep
       - build_alpha
       - generate_release_info
     uses: ./.github/workflows/publish.yml
     with:
       target-tag: ${{ needs.generate_release_info.outputs.tag_name }}
       version-type: alpha
-      matrix: ${{ needs.matrix_prep.outputs.matrix }}
+      matrix: ${{ needs.branch_matrix_prep.outputs.publish_matrix }}
     secrets:
       GT: ${{ secrets.GITHUB_TOKEN }}
       CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
