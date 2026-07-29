@@ -23,20 +23,37 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     strategy:
+      fail-fast: false
       matrix: ${{ fromJson(inputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
 
       - name: Download build artifacts
+        id: download
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: ${{ matrix.artifact_name }}
           path: build-artifacts
 
+      - name: Skip if artifacts missing
+        id: guard
+        run: |
+          if [ "${{ steps.download.outcome }}" != "success" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::warning::No artifacts for branch ${{ matrix.branch }}; skipping publish of ${{ matrix.subproject }}"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Read common properties
+        if: ${{ steps.guard.outputs.skip != 'true' }}
         uses: christian-draeger/read-properties@1.1.1
         with:
           path: gradle.properties
@@ -44,6 +61,7 @@ jobs:
         id: properties_g
 
       - name: Read version-specific properties
+        if: ${{ steps.guard.outputs.skip != 'true' }}
         uses: christian-draeger/read-properties@1.1.1
         with:
           path: ${{ format('./{0}/gradle.properties', matrix.subproject) }}
@@ -51,6 +69,7 @@ jobs:
         id: properties_v
 
       - name: Fix game version
+        if: ${{ steps.guard.outputs.skip != 'true' }}
         id: game_versions
         run: |
           echo 'value<<EOF' >> $GITHUB_OUTPUT
@@ -58,6 +77,7 @@ jobs:
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Prepare file information
+        if: ${{ steps.guard.outputs.skip != 'true' }}
         id: file_info
         run: |
           shopt -s extglob
@@ -76,6 +96,7 @@ jobs:
           echo "hash=$FILE_HASH" >> $GITHUB_OUTPUT
 
       - name: Prepare changelog
+        if: ${{ steps.guard.outputs.skip != 'true' }}
         uses: actions/github-script@v6
         id: changelog
         with:
@@ -86,11 +107,13 @@ jobs:
             ${{ format('{0}{1}', github.event.release.body, steps.get_release.outputs.body) }}
             -------
             Build Information
+            - Branch: `${{ matrix.branch }}`
             - File name: `${{ steps.file_info.outputs.name }}`
             - SHA-256: `${{ steps.file_info.outputs.hash }}`
             - Built from: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Publish Minecraft Mods
+        if: ${{ steps.guard.outputs.skip != 'true' }}
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: DgWBIBY5

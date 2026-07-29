@@ -1,0 +1,24 @@
+name: step.branch_matrix_prepare
+
+on:
+  workflow_call:
+    outputs:
+      branch_matrix:
+        description: Matrix of version branches to build
+        value: ${{ jobs.matrix_prep.outputs.branch_matrix }}
+      publish_matrix:
+        description: Matrix of branch x loader for publish
+        value: ${{ jobs.matrix_prep.outputs.publish_matrix }}
+
+jobs:
+  matrix_prep:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: setmatrix
+        run: python3 .github/workflows/scripts/branch_matrix.py
+
+    outputs:
+      branch_matrix: ${{ steps.setmatrix.outputs.branch_matrix }}
+      publish_matrix: ${{ steps.setmatrix.outputs.publish_matrix }}
