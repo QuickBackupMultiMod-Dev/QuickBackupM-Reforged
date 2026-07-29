@@ -1,0 +1,87 @@
+name: build-branches
+on:
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        required: false
+        default: false
+      tag:
+        type: string
+        required: false
+      branch_matrix:
+        type: string
+        required: true
+        description: JSON matrix object with include entries (branch, java, build_task)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(inputs.branch_matrix) }}
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+
+      - name: Cache gradle files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ./.gradle/loom-cache
+          key: ${{ runner.os }}-gradle-${{ matrix.branch }}-${{ hashFiles('*.gradle', 'gradle.properties', '**/*.accesswidener') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ matrix.branch }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew ${{ matrix.build_task }} --no-daemon
+        env:
+          BUILD_TAG: ${{ inputs.tag }}
+          BUILD_ID: ${{ github.run_number }}
+          BUILD_RELEASE: ${{ inputs.release }}
+
+      - name: Upload JAR file
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.branch }}
+          path: |
+            ./*/build/libs/
+            !./*/build/libs/*shadow*.jar
+            !./*/build/libs/*source*.jar
+            !./common/build/libs/
+            !./cli/build/libs/
+
+  summary:
+    runs-on: ubuntu-22.04
+    needs:
+      - build
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-artifacts-*
+          path: build-artifacts
+          merge-multiple: true
+
+      - name: Make build summary
+        run: python3 .github/workflows/scripts/summary.py
