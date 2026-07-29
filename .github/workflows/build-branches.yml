@@ -28,11 +28,29 @@ jobs:
         with:
           ref: ${{ matrix.branch }}
 
+      - name: Resolve CI Java / build task
+        id: ci_meta
+        run: |
+          # Prefer values from the checked-out branch; fall back to matrix / defaults.
+          JAVA=$(grep -E '^[[:space:]]*ci_java_version[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
+          TASK=$(grep -E '^[[:space:]]*ci_build_task[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
+          if [ -z "$JAVA" ]; then JAVA='${{ matrix.java }}'; fi
+          if [ -z "$TASK" ]; then TASK='${{ matrix.build_task }}'; fi
+          echo "java=${JAVA:-21}" >> "$GITHUB_OUTPUT"
+          echo "task=${TASK:-remapJar}" >> "$GITHUB_OUTPUT"
+          echo "Branch ${{ matrix.branch }} -> java=${JAVA:-21} task=${TASK:-remapJar}"
+          java -version || true
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java }}
+          java-version: ${{ steps.ci_meta.outputs.java }}
           distribution: 'temurin'
+
+      - name: Verify Java
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
 
       - name: Cache gradle files
         uses: actions/cache@v4
@@ -50,7 +68,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew ${{ matrix.build_task }} --no-daemon
+        run: ./gradlew ${{ steps.ci_meta.outputs.task }} --no-daemon
         env:
           BUILD_TAG: ${{ inputs.tag }}
           BUILD_ID: ${{ github.run_number }}
