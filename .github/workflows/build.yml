@@ -16,16 +16,6 @@ on:
         required: false
         description: Git ref/branch to checkout; empty uses the triggering ref
         default: ''
-      java_version:
-        type: string
-        required: false
-        description: JDK major version
-        default: '21'
-      build_task:
-        type: string
-        required: false
-        description: Gradle task to run
-        default: 'remapJar'
       artifact_name:
         type: string
         required: false
@@ -47,10 +37,19 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Resolve CI Java / build task
+        id: ci_meta
+        run: |
+          JAVA=$(grep -E '^[[:space:]]*ci_java_version[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
+          TASK=$(grep -E '^[[:space:]]*ci_build_task[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
+          echo "java=${JAVA:-21}" >> "$GITHUB_OUTPUT"
+          echo "task=${TASK:-remapJar}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ci_java_version=${JAVA:-21} ci_build_task=${TASK:-remapJar}"
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ inputs.java_version }}
+          java-version: ${{ steps.ci_meta.outputs.java }}
           distribution: 'temurin'
 
       - name: Cache gradle files
@@ -68,7 +67,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew ${{ inputs.build_task }} --no-daemon
+        run: ./gradlew ${{ steps.ci_meta.outputs.task }} --no-daemon
         env:
           BUILD_TAG: ${{ inputs.tag }}
           BUILD_ID: ${{ github.run_number }}
