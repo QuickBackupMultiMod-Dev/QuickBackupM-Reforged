@@ -134,11 +134,13 @@ public class BackupManager {
         try {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.start")));
             MinecraftServer server = commandSource.getServer();
-            server.executeBlocking(() -> server.saveEverything(true, true, true));
-            for (ServerLevel serverLevel : server.getAllLevels()) {
-                if (serverLevel == null || serverLevel.noSave) continue;
-                serverLevel.noSave = true;
-            }
+            server.executeBlocking(() -> {
+                server.saveEverything(true, true, true);
+                for (ServerLevel serverLevel : server.getAllLevels()) {
+                    if (serverLevel == null || serverLevel.noSave) continue;
+                    serverLevel.noSave = true;
+                }
+            });
 
             QuickbackupmultiReforged.getManager().incrementalStorage(
                 name,
@@ -152,10 +154,12 @@ public class BackupManager {
             double intervalTime = (endTime - startTime) / 1000.0;
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
 
-            for (ServerLevel serverLevel : server.getAllLevels()) {
-                if (serverLevel == null || !serverLevel.noSave) continue;
-                serverLevel.noSave = false;
-            }
+            server.executeBlocking(() -> {
+                for (ServerLevel serverLevel : server.getAllLevels()) {
+                    if (serverLevel == null || !serverLevel.noSave) continue;
+                    serverLevel.noSave = false;
+                }
+            });
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
@@ -181,9 +185,12 @@ public class BackupManager {
         }
     }
 
-    public static boolean restoreBackup(String name, RestoreExtraRunnable extraRunnable) {
+    /**
+     * Reconstruct a backup's files from the hash-deduplicated blob store into {@code targetRoot}.
+     * This is the shared logic behind both restore (target = live world) and export (target = arbitrary directory).
+     */
+    private static boolean reconstructBackup(String name, Path targetRoot, RestoreExtraRunnable extraRunnable) {
         Map<String, String> hashMap = QuickbackupmultiReforged.getDatabase().getFileHashMap(name);
-        Path savePath = QuickbackupmultiReforged.getModContainer().getCurrentSavePath();
         try {
             int index = 0;
             for (Map.Entry<String, String> entry : hashMap.entrySet()) {
@@ -196,7 +203,7 @@ public class BackupManager {
                     String hashStart = fileHash.substring(0, 2);
                     hashFile = getBackupPath().resolve("blogs").resolve(hashStart).resolve(fileHash).toFile();
                 }
-                File targetDir = savePath.resolve(fileName).toFile();
+                File targetDir = targetRoot.resolve(fileName).toFile();
                 FileUtils.copyFile(hashFile, targetDir);
 
                 index++;
@@ -207,13 +214,36 @@ public class BackupManager {
             }
             return true;
         } catch (IOException e) {
-            logger.error("Restore Failed", e);
+            logger.error("Reconstruct backup failed", e);
             return false;
         }
     }
 
+    public static boolean restoreBackup(String name, RestoreExtraRunnable extraRunnable) {
+        Path savePath = QuickbackupmultiReforged.getModContainer().getCurrentSavePath();
+        return reconstructBackup(name, savePath, extraRunnable);
+    }
+
     public static boolean restoreBackup(String name) {
         return restoreBackup(name, null);
+    }
+
+    /**
+     * Export (reconstruct) a backup into {@code targetDir} as plain world files.
+     *
+     * @return {@code true} on success, {@code false} if the backup does not exist or reconstruction failed.
+     */
+    public static boolean exportBackup(String name, Path targetDir) {
+        if (!QuickbackupmultiReforged.getDatabase().storageExists(name)) {
+            return false;
+        }
+        try {
+            Files.createDirectories(targetDir);
+        } catch (IOException e) {
+            logger.error("Create export directory failed", e);
+            return false;
+        }
+        return reconstructBackup(name, targetDir, null);
     }
 
     public static void deleteWorld(String worldName) {

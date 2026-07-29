@@ -11,19 +11,46 @@ on:
       tag:
         type: string
         required: false
+      ref:
+        type: string
+        required: false
+        description: Git ref/branch to checkout; empty uses the triggering ref
+        default: ''
+      java_version:
+        type: string
+        required: false
+        description: JDK major version
+        default: '21'
+      build_task:
+        type: string
+        required: false
+        description: Gradle task to run
+        default: 'remapJar'
+      artifact_name:
+        type: string
+        required: false
+        description: Upload artifact name
+        default: 'build-artifacts'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
 
-      - name: Check out
+      - name: Check out (triggering ref)
+        if: ${{ inputs.ref == '' }}
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Check out (specified ref)
+        if: ${{ inputs.ref != '' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: ${{ inputs.java_version }}
           distribution: 'temurin'
 
       - name: Cache gradle files
@@ -33,7 +60,7 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             ./.gradle/loom-cache
-          key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', 'gradle.properties', '**/*.accesswidener') }}
+          key: ${{ runner.os }}-gradle-${{ inputs.ref || github.ref_name }}-${{ hashFiles('*.gradle', 'gradle.properties', '**/*.accesswidener') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -41,7 +68,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew remapJar --no-daemon
+        run: ./gradlew ${{ inputs.build_task }} --no-daemon
         env:
           BUILD_TAG: ${{ inputs.tag }}
           BUILD_ID: ${{ github.run_number }}
@@ -50,12 +77,13 @@ jobs:
       - name: Upload JAR file
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: ${{ inputs.artifact_name }}
           path: |
             ./*/build/libs/
             !./*/build/libs/*shadow*.jar
             !./*/build/libs/*source*.jar
             !./common/build/libs/
+            !./cli/build/libs/
 
   summary:
     runs-on: ubuntu-22.04
@@ -68,7 +96,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: ${{ inputs.artifact_name }}
           path: build-artifacts
 
       - name: Make build summary

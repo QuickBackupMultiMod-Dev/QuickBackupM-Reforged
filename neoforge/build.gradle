@@ -56,10 +56,13 @@ dependencies {
 }
 
 processResources {
+    def minecraftRange = minecraftNeoForgeRange(project.minecraft_supported_versions)
+
     inputs.property "version", project.version
+    inputs.property "minecraft_range", minecraftRange
 
     filesMatching("META-INF/neoforge.mods.toml") {
-        expand version: project.version
+        expand version: project.version, minecraft_range: minecraftRange
     }
 }
 

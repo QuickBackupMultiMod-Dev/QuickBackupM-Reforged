@@ -57,4 +57,4 @@ _✨ MC备份 / 回档模组 ✨_
 - [x] 个性化设置
 
 ## 许可
-本项目遵循 [Apache-2.0 license](https://www.apache.org/licenses/LICENSE-2.0) 许可
+本项目遵循 [LGPL-3.0 License](https://www.gnu.org/licenses/lgpl-3.0.en.html) 许可
