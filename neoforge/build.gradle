@@ -17,7 +17,7 @@ configurations {
     developmentNeoForge.extendsFrom common
 
     // Files in this configuration will be bundled into your mod using the Shadow plugin.
-    // Don"t use the `shadow` configuration from the plugin itself as it"s meant for excluding files.
+    // Don't use the `shadow` configuration from the plugin itself as it's meant for excluding files.
     shadowBundle {
         canBeResolved = true
         canBeConsumed = false
@@ -39,19 +39,9 @@ dependencies {
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionNeoForge")
 
     forgeRuntimeLibrary("org.quartz-scheduler:quartz:2.5.0")
-
-    forgeRuntimeLibrary("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
-    forgeRuntimeLibrary("org.jetbrains.exposed:exposed-core:0.57.0")
-    forgeRuntimeLibrary("org.jetbrains.exposed:exposed-jdbc:0.57.0")
-    forgeRuntimeLibrary("com.h2database:h2:2.2.224")
-
     include("org.quartz-scheduler:quartz:2.5.0")
 
-    include("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
-    include("org.jetbrains.exposed:exposed-core:0.57.0")
-    include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
-    include("com.h2database:h2:2.2.224")
-
+    // Kotlin for NeoForge (Fabric uses fabric-language-kotlin instead).
     include("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
 }
 
@@ -67,9 +57,10 @@ processResources {
 }
 
 shadowJar {
-    configurations = [project.configurations.shadowBundle]
     archiveClassifier = "dev-shadow"
 }
+
+apply from: rootProject.file("gradle/embed-libs.gradle")
 
 remapJar {
     input.set shadowJar.archiveFile
