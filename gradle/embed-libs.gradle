@@ -1,4 +1,4 @@
-﻿// Embeds database libraries into the mod jar and relocates their packages so they
+// Embeds database libraries into the mod jar and relocates their packages so they
 // cannot clash with other mods that JiJ the same libraries (notably Ledger + Exposed).
 //
 // Applied from fabric/neoforge after their shadowBundle configuration exists.

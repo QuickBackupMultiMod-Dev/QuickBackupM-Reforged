@@ -38,6 +38,7 @@ dependencies {
     common(project(path: ":${mod_id}-common:")) { transitive false }
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionFabric")
 
+    // Quartz stays JiJ. Exposed/H2/storage-lib are relocated via embed-libs.
     include("org.quartz-scheduler:quartz:2.5.0")
 }
 
@@ -57,13 +58,10 @@ jar {
     archiveClassifier = "dev"
 }
 
-// Final mod jar: platform jar contents + transformed common classes.
+// Final mod jar: platform jar contents + transformed common classes + relocated libs.
 shadowJar {
     dependsOn(jar)
-    from(zipTree(tasks.named("jar", Jar).flatMap { it.archiveFile }
-apply from: rootProject.file("gradle/embed-libs.gradle")
-
-))
+    from(zipTree(tasks.named("jar", Jar).flatMap { it.archiveFile }))
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = ""
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -73,3 +71,5 @@ apply from: rootProject.file("gradle/embed-libs.gradle")
 tasks.named("assemble").configure {
     dependsOn(tasks.named("shadowJar"))
 }
+
+apply from: rootProject.file("gradle/embed-libs.gradle")
