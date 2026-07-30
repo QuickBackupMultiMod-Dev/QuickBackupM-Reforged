@@ -39,19 +39,7 @@ dependencies {
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionNeoForge")
 
     forgeRuntimeLibrary("org.quartz-scheduler:quartz:2.5.0")
-
-    forgeRuntimeLibrary("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
-    forgeRuntimeLibrary("org.jetbrains.exposed:exposed-core:0.57.0")
-    forgeRuntimeLibrary("org.jetbrains.exposed:exposed-jdbc:0.57.0")
-    forgeRuntimeLibrary("com.h2database:h2:2.2.224")
-
     include("org.quartz-scheduler:quartz:2.5.0")
-
-    include("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
-    include("org.jetbrains.exposed:exposed-core:0.57.0")
-    include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
-    include("com.h2database:h2:2.2.224")
-
     include("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
 }
 
@@ -74,7 +62,10 @@ jar {
 // Final mod jar: platform jar contents + transformed common classes.
 shadowJar {
     dependsOn(jar)
-    from(zipTree(tasks.named("jar", Jar).flatMap { it.archiveFile }))
+    from(zipTree(tasks.named("jar", Jar).flatMap { it.archiveFile }
+apply from: rootProject.file("gradle/embed-libs.gradle")
+
+))
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = ""
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
