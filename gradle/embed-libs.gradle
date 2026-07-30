@@ -1,0 +1,44 @@
+// Embeds database libraries into the mod jar and relocates their packages so they
+// cannot clash with other mods that JiJ the same libraries (notably Ledger + Exposed).
+//
+// Applied from fabric/neoforge after their shadowBundle configuration exists.
+
+configurations {
+    embed {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    def embedLib = { Object notation ->
+        embed(notation) {
+            // Kotlin is provided by fabric-language-kotlin (Fabric) or kotlin-stdlib JiJ (NeoForge).
+            exclude group: 'org.jetbrains.kotlin'
+            exclude group: 'org.jetbrains.kotlinx'
+        }
+    }
+
+    embedLib("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
+    embedLib("org.jetbrains.exposed:exposed-core:0.57.0")
+    embedLib("org.jetbrains.exposed:exposed-jdbc:0.57.0")
+    embedLib("com.h2database:h2:2.2.224")
+}
+
+tasks.named("shadowJar").configure {
+    configurations = [
+        project.configurations.shadowBundle,
+        project.configurations.embed,
+    ]
+    mergeServiceFiles()
+
+    // Unique package prefix so Fabric/NeoForge classloaders never see Ledger's Exposed.
+    relocate(
+        'org.jetbrains.exposed',
+        'io.github.skydynamic.quickbackupmulti.repack.org.jetbrains.exposed'
+    )
+    relocate(
+        'org.h2',
+        'io.github.skydynamic.quickbackupmulti.repack.org.h2'
+    )
+}

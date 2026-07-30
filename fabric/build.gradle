@@ -40,12 +40,8 @@ dependencies {
 
     modImplementation("net.fabricmc:fabric-language-kotlin:1.12.3+kotlin.2.0.21")
 
+    // Quartz is uncommon as a shared JiJ; keep nested. Exposed/H2/storage-lib are relocated via embed-libs.
     include("org.quartz-scheduler:quartz:2.5.0")
-
-    include("io.github.skydynamic:incremental-storage-lib:$rootProject.incremental_storage_lib_version")
-    include("org.jetbrains.exposed:exposed-core:0.57.0")
-    include("org.jetbrains.exposed:exposed-jdbc:0.57.0")
-    include("com.h2database:h2:2.2.224")
 }
 
 processResources {
@@ -60,9 +56,10 @@ processResources {
 }
 
 shadowJar {
-    configurations = [project.configurations.shadowBundle]
     archiveClassifier = "dev-shadow"
 }
+
+apply from: rootProject.file("gradle/embed-libs.gradle")
 
 remapJar {
     input.set shadowJar.archiveFile
