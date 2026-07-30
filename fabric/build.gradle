@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow"
+    id "com.gradleup.shadow"
 }
 
 architectury {
@@ -57,12 +57,21 @@ processResources {
     }
 }
 
+// Thin jar (platform-only + loom includes). Release artifact is shadowJar below.
+jar {
+    archiveClassifier = "dev"
+}
+
+// Final mod jar: platform jar contents + transformed common classes.
 shadowJar {
     dependsOn(jar)
-    mainSpec.sourcePaths.clear()
-    from(zipTree(jar.archiveFile))
-
+    from(zipTree(tasks.named("jar", Jar).flatMap { it.archiveFile }))
     configurations = [project.configurations.shadowBundle]
-    archiveClassifier = null
+    archiveClassifier = ""
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from rootProject.file("LICENSE.md")
+}
+
+tasks.named("assemble").configure {
+    dependsOn(tasks.named("shadowJar"))
 }

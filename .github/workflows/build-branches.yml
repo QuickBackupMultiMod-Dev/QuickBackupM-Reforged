@@ -80,6 +80,7 @@ jobs:
           name: build-artifacts-${{ matrix.branch }}
           path: |
             ./*/build/libs/
+            !./*/build/libs/*-dev.jar
             !./*/build/libs/*shadow*.jar
             !./*/build/libs/*source*.jar
             !./common/build/libs/

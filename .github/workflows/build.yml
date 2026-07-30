@@ -79,6 +79,7 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: |
             ./*/build/libs/
+            !./*/build/libs/*-dev.jar
             !./*/build/libs/*shadow*.jar
             !./*/build/libs/*source*.jar
             !./common/build/libs/
