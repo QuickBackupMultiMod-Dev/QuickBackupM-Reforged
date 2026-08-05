@@ -39,8 +39,10 @@ dependencies {
 
     modImplementation("net.fabricmc:fabric-language-kotlin:1.12.3+kotlin.2.0.21")
 
-    // Quartz is uncommon as a shared JiJ; keep nested. Exposed/H2/storage-lib are relocated via embed-libs.
-    include("org.quartz-scheduler:quartz:2.5.0")
+    // Quartz is uncommon as a shared JiJ; keep nested, but do not bundle its SLF4J API.
+    include(group: "org.quartz-scheduler", name: "quartz", version: "2.5.0") {
+        exclude group: "org.slf4j"
+    }
 }
 
 processResources {
