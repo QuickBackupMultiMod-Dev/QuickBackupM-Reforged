@@ -39,7 +39,9 @@ dependencies {
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionFabric")
 
     // Quartz stays JiJ. Exposed/H2/storage-lib are relocated via embed-libs.
-    include("org.quartz-scheduler:quartz:2.5.0")
+    include(group: "org.quartz-scheduler", name: "quartz", version: "2.5.0") {
+        exclude group: "org.slf4j"
+    }
 }
 
 processResources {

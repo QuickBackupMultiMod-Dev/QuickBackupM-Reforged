@@ -16,6 +16,8 @@ dependencies {
             // Kotlin is provided by fabric-language-kotlin (Fabric) or kotlin-stdlib JiJ (NeoForge).
             exclude group: 'org.jetbrains.kotlin'
             exclude group: 'org.jetbrains.kotlinx'
+            // SLF4J is provided by the mod loader/runtime; do not bundle it into the mod jar.
+            exclude group: 'org.slf4j'
         }
     }
 

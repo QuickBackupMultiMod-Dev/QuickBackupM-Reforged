@@ -39,7 +39,9 @@ dependencies {
     shadowBundle project(path: ":${mod_id}-common", configuration: "transformProductionNeoForge")
 
     forgeRuntimeLibrary("org.quartz-scheduler:quartz:2.5.0")
-    include("org.quartz-scheduler:quartz:2.5.0")
+    include(group: "org.quartz-scheduler", name: "quartz", version: "2.5.0") {
+        exclude group: "org.slf4j"
+    }
 
     // Kotlin for NeoForge (Fabric uses fabric-language-kotlin instead).
     include("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
