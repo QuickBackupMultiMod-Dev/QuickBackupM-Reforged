@@ -25,8 +25,8 @@ public class ClientRestoreDelegate {
     public void run() {
         long startTime = System.currentTimeMillis();
         minecraftClient.executeBlocking(() -> {
-            minecraftClient.level.disconnect();
-            minecraftClient.disconnect(screen);
+            minecraftClient.level.disconnect(Component.empty());
+            minecraftClient.disconnect(screen, false);
         });
 
         CompletableFuture.runAsync(() -> {

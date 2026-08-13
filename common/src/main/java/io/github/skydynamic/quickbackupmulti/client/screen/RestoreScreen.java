@@ -90,7 +90,7 @@ public class RestoreScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
         this.renderPanorama(guiGraphics, f);
-        this.renderBlurredBackground();
+        this.renderBlurredBackground(guiGraphics);
         this.renderMenuBackground(guiGraphics);
     }
 }
