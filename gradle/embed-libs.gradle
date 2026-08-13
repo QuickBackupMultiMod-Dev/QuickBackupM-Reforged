@@ -39,8 +39,6 @@ tasks.named("shadowJar").configure {
         'org.jetbrains.exposed',
         'io.github.skydynamic.quickbackupmulti.repack.org.jetbrains.exposed'
     )
-    relocate(
-        'org.h2',
-        'io.github.skydynamic.quickbackupmulti.repack.org.h2'
-    )
+    // H2 cannot be relocated: MVStore persists DataType Class.getName() into .mv.db
+    // and later Class.forName()s that exact string. Keep the original org.h2 package.
 }
