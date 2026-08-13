@@ -60,7 +60,7 @@ public class ClientRestoreDelegate {
             minecraftClient.execute(() -> {
                 Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_title"));
                 Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.end_desc", (int) ((endTime - startTime)) / 1000));
-                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
+                SystemToast.addOrUpdate(minecraftClient.getToastManager(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
             });
             if (QuickbackupmultiReforged.getModConfig().isClientAutoReJoinWorld()) {
                 minecraftClient.execute(() -> minecraftClient.createWorldOpenFlows().openWorld(levelId,
@@ -80,7 +80,7 @@ public class ClientRestoreDelegate {
             minecraftClient.execute(() -> {
                 Component title = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.cancel_success"));
                 Component desc = Component.nullToEmpty(Translate.tr("quickbackupmulti.toast.cancel_success.desc"));
-                SystemToast.addOrUpdate(minecraftClient.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
+                SystemToast.addOrUpdate(minecraftClient.getToastManager(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, desc);
                 minecraftClient.setScreen(null);
             });
         } catch (Exception e) {
