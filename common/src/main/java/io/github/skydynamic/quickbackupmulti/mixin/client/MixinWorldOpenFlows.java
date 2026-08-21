@@ -31,7 +31,9 @@ public class MixinWorldOpenFlows {
     )
     private void onCreateLevelFromExistingSettings$createPackRepository(
         LevelStorageSource.LevelStorageAccess levelStorageAccess, ReloadableServerResources reloadableServerResources,
-        LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess, WorldData worldData,
+        LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess,
+        LevelDataAndDimensions.WorldDataAndGenSettings worldData,
+        Optional<GameRules> gameRules,
         CallbackInfo ci
     ) {
         String worldName = levelStorageAccess.getLevelId();
