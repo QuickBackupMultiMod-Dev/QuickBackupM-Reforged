@@ -1,0 +1,106 @@
+// Guards the release jar against packaging regressions that only surface at runtime.
+//
+// The nested (Jar-in-Jar) libraries are added by Loom as doLast actions on the `jar`
+// task, so any repackaging that happens after `jar` silently drops the declarations
+// while leaving the nested jars physically present — the jar looks complete but the
+// loader never mounts them (e.g. NoClassDefFoundError: org/quartz/SchedulerException).
+//
+// This deliberately inspects whatever ends up in build/libs as a shipped artifact
+// (same filter as gradle/libs-output.gradle) rather than one task's output, so it
+// still catches the regression if the release artifact moves to another task.
+//
+// Applied from fabric/neoforge after their `jar` task is configured.
+
+import java.util.zip.ZipFile
+
+def fabricPlatform = project.name.contains("fabric")
+
+tasks.register("verifyModJar") {
+    description = "Asserts the shipped jars declare their nested jars and relocated libraries."
+    group = "verification"
+
+    dependsOn(tasks.named("assemble"))
+
+    doLast {
+        def libsDir = layout.buildDirectory.dir("libs").get().asFile
+        def shipped = (libsDir.listFiles() ?: []).findAll { file ->
+            file.name.endsWith(".jar") &&
+                !file.name.contains("dev") &&
+                !file.name.contains("source")
+        }
+
+        if (shipped.isEmpty()) {
+            throw new GradleException("No shipped jar found in $libsDir to verify.")
+        }
+
+        def failures = []
+
+        shipped.each { jarFile ->
+            def problems = []
+
+            new ZipFile(jarFile).withCloseable { zip ->
+                def entries = zip.entries().collect { it.name }
+                def nested = entries.findAll { it.startsWith("META-INF/jars/") && it.endsWith(".jar") }
+
+                // -- Nested jars must be declared, or the loader ignores them --------
+                def declared = []
+                if (fabricPlatform) {
+                    def descriptor = zip.getEntry("fabric.mod.json")
+                    if (descriptor == null) {
+                        problems << "fabric.mod.json is missing"
+                    } else {
+                        def json = new groovy.json.JsonSlurper().parse(zip.getInputStream(descriptor))
+                        declared = (json.jars ?: []).collect { it.file }
+                    }
+                } else {
+                    def metadata = zip.getEntry("META-INF/jarjar/metadata.json")
+                    if (metadata == null) {
+                        problems << "META-INF/jarjar/metadata.json is missing"
+                    } else {
+                        def json = new groovy.json.JsonSlurper().parse(zip.getInputStream(metadata))
+                        declared = (json.jars ?: []).collect { it.path }
+                    }
+                }
+
+                def undeclared = nested - declared
+                if (!undeclared.isEmpty()) {
+                    problems << "nested jars present but never declared to the loader: ${undeclared.sort()}"
+                }
+
+                if (!nested.any { it.contains("quartz") }) {
+                    problems << "no quartz jar nested under META-INF/jars/"
+                }
+
+                // -- Loom's manifest actions must be the last step -------------------
+                def manifest = zip.getEntry("META-INF/MANIFEST.MF")
+                def manifestText = manifest == null ? "" : zip.getInputStream(manifest).text
+                if (!manifestText.contains("Fabric-Mapping-Namespace")) {
+                    problems << "manifest lacks Fabric-Mapping-Namespace; Loom's manifest action did not run last"
+                }
+
+                // -- Relocation must survive into the release jar --------------------
+                if (entries.any { it.startsWith("org/jetbrains/exposed/") }) {
+                    problems << "unrelocated org/jetbrains/exposed/ classes leaked into the jar"
+                }
+                def repack = "io/github/skydynamic/quickbackupmulti/repack/org/jetbrains/exposed/"
+                if (!entries.any { it.startsWith(repack) }) {
+                    problems << "relocated Exposed classes ($repack) are missing"
+                }
+            }
+
+            if (problems.isEmpty()) {
+                logger.lifecycle("verifyModJar: ${jarFile.name} OK")
+            } else {
+                failures << "${jarFile.name}:\n" + problems.collect { "    - $it" }.join("\n")
+            }
+        }
+
+        if (!failures.isEmpty()) {
+            throw new GradleException("Packaging verification failed:\n  " + failures.join("\n  "))
+        }
+    }
+}
+
+tasks.named("check").configure {
+    dependsOn(tasks.named("verifyModJar"))
+}

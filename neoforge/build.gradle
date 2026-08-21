@@ -58,23 +58,28 @@ processResources {
     }
 }
 
-// Thin jar (platform-only + loom includes). Release artifact is shadowJar below.
-jar {
-    archiveClassifier = "dev"
+// Intermediate: transformed common classes + relocated/embedded libs.
+// `configurations` and the relocations are set by gradle/embed-libs.gradle.
+shadowJar {
+    archiveClassifier = "dev-shadow"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-// Final mod jar: platform jar contents + transformed common classes + relocated libs.
-shadowJar {
-    dependsOn(jar)
-    from(zipTree(tasks.named("jar", Jar).flatMap { it.archiveFile }))
-    configurations = [project.configurations.shadowBundle]
+// Release artifact. loom-no-remap attaches its NestJarsAction and
+// ManifestModificationAction as doLast actions on `jar`, so `jar` has to be the
+// outermost archive; packaging the release from shadowJar instead drops the nested
+// jar declarations and Loom's manifest attributes.
+jar {
+    dependsOn(tasks.named("shadowJar"))
+    from(zipTree(tasks.named("shadowJar", Jar).flatMap { it.archiveFile }))
+    from rootProject.file("LICENSE.txt")
     archiveClassifier = ""
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from rootProject.file("LICENSE.md")
-}
-
-tasks.named("assemble").configure {
-    dependsOn(tasks.named("shadowJar"))
+    // H2 ships META-INF/versions/{9,10,21}; shadowJar's manifest used to provide this.
+    manifest {
+        attributes("Multi-Release": "true")
+    }
 }
 
 apply from: rootProject.file("gradle/embed-libs.gradle")
+apply from: rootProject.file("gradle/verify-mod-jar.gradle")
