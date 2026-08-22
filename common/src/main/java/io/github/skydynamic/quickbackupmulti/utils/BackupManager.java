@@ -102,17 +102,11 @@ public class BackupManager {
             List<StorageInfo> incrementalBackups = storageInfoList.stream().filter(StorageInfo::getUseIncrementalStorage).toList();
             List<StorageInfo> fullBackups = storageInfoList.stream().filter(it -> !it.getUseIncrementalStorage()).toList();
             if (!incrementalBackups.isEmpty() && incrementalBackups.size() % QuickbackupmultiReforged.getModConfig().getFullBackupInterval() == 0) {
-                if (fullBackups.size() >= QuickbackupmultiReforged.getModConfig().getSaveFullBackupCount()) {
-                    fullBackups.stream().min(Comparator.comparingLong(StorageInfo::getTimestamp))
-                        .ifPresent(oldestFullBackup -> {
-                            try {
-                                logger.info("Delete oldest full backup: {}", oldestFullBackup.getName());
-                                FileUtils.deleteDirectory(getBackupPath().resolve("full").resolve(oldestFullBackup.getName()).toFile());
-                            } catch (IOException e) {
-                                logger.error("delete oldest full backup failed: ", e);
-                            }
-                        });
-                }
+                // Room has to be made for the full backup that is about to be created, so prune down
+                // to saveFullBackupCount - 1. Every removal drops the database row as well: deleting
+                // only the directory used to leave the record behind, so the same (already deleted)
+                // backup was picked as "oldest" on every later run and the rotation never advanced.
+                pruneFullBackups(fullBackups, QuickbackupmultiReforged.getModConfig().getSaveFullBackupCount() - 1);
                 logger.info("Make a full backup for future use...");
                 QuickbackupmultiReforged.getManager().fullStorage(
                     "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
@@ -122,6 +116,34 @@ public class BackupManager {
                     folderFilter
                 );
             }
+        }
+    }
+
+    /**
+     * Drop the oldest full backups until at most {@code keepCount} remain.
+     *
+     * <p>A full backup lives in two places: the {@code full/<name>} directory and a
+     * {@code STORAGE_INFO} row. Removing only the directory leaves the row behind, and since the
+     * rotation reads its candidates from the database the orphaned row is selected as "oldest"
+     * again on every later run — the deletion silently no-ops on the missing directory, the count
+     * never falls below the limit, and full backups grow without bound. So always drop both.
+     *
+     * <p>{@link io.github.skydynamic.increment.storage.lib.utils.StorageManager#deleteStorage} is
+     * deliberately not used here: it is written for incremental backups and starts by reading the
+     * backup's {@code FILE_HASH} row, which a full backup never has, so it would throw.
+     */
+    static void pruneFullBackups(List<StorageInfo> fullBackups, int keepCount) {
+        for (StorageInfo fullBackup : FullBackupRotation.selectExpired(fullBackups, keepCount)) {
+            logger.info("Delete oldest full backup: {}", fullBackup.getName());
+            try {
+                FileUtils.deleteDirectory(getBackupPath().resolve("full").resolve(fullBackup.getName()).toFile());
+            } catch (IOException e) {
+                // Still drop the database row: leaving it behind is what made the rotation loop
+                // forever, and a stale row is worse than a stale directory.
+                logger.error("delete oldest full backup failed: ", e);
+            }
+            QuickbackupmultiReforged.getDatabase().deleteTableValue(fullBackup.getName(), DatabaseTables.STORAGE_INFO);
+            QuickbackupmultiReforged.getDatabase().deleteTableValue(fullBackup.getName(), DatabaseTables.FILE_HASH);
         }
     }
 
