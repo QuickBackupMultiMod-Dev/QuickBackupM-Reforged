@@ -42,9 +42,17 @@ jobs:
         run: |
           JAVA=$(grep -E '^[[:space:]]*ci_java_version[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
           TASK=$(grep -E '^[[:space:]]*ci_build_task[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
+          MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r' || true)
           echo "java=${JAVA:-21}" >> "$GITHUB_OUTPUT"
           echo "task=${TASK:-remapJar}" >> "$GITHUB_OUTPUT"
-          echo "Resolved ci_java_version=${JAVA:-21} ci_build_task=${TASK:-remapJar}"
+          # The harness module only exists on branches that carry a harness/ directory; leave the output
+          # empty (and so skip the unit-test step) on branches that predate it.
+          if [ -d harness ] && [ -n "$MOD_ID" ]; then
+            echo "harness_project=${MOD_ID}-harness" >> "$GITHUB_OUTPUT"
+          else
+            echo "harness_project=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Resolved ci_java_version=${JAVA:-21} ci_build_task=${TASK:-remapJar} harness=${MOD_ID:-none}"
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -65,6 +73,13 @@ jobs:
 
       - name: Grant execute permission
         run: chmod +x gradlew
+
+      - name: Fast unit tests
+        # The harness's fast, offline tests (version-range logic, xfail markings, the report writer).
+        # ci_build_task is remapJar, which does not depend on `test`, so run it explicitly here — these
+        # are cheap and catch a broken matrix or a malformed known-issues.json on every push.
+        run: ./gradlew :${{ steps.ci_meta.outputs.harness_project }}:test --no-daemon
+        if: ${{ steps.ci_meta.outputs.harness_project != '' }}
 
       - name: Build with Gradle
         run: ./gradlew ${{ steps.ci_meta.outputs.task }} --no-daemon

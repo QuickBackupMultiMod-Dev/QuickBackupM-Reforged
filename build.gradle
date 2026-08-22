@@ -68,9 +68,10 @@ allprojects {
 }
 
 subprojects {
-    // The standalone CLI module is a plain-Java application (no Minecraft / Loom / Architectury).
-    // It carries its own build.gradle, so skip all Minecraft-specific wiring for it.
-    if (project.name.endsWith("-cli")) {
+    // The standalone CLI module is a plain-Java application (no Minecraft / Loom / Architectury) and
+    // the test harness is a plain-Java JUnit project that drives an already-built jar out of process.
+    // Both carry their own build.gradle, so skip all Minecraft-specific wiring for them.
+    if (project.name.endsWith("-cli") || project.name.endsWith("-harness")) {
         return
     }
 

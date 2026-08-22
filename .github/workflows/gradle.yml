@@ -4,8 +4,11 @@ on:
   push:
     paths:
       - "*.gradle"
+      # "*.gradle" only matches the root; the per-module build files live one level down.
+      - "*/*.gradle"
       - "gradle.properties"
       - "*/src/**"
+      - ".github/known-issues.json"
       - ".github/workflows/build.yml"
       - ".github/workflows/gradle.yml"
       - ".github/workflows/scripts/**"
@@ -13,8 +16,10 @@ on:
   pull_request:
     paths:
       - "*.gradle"
+      - "*/*.gradle"
       - "gradle.properties"
       - "*/src/**"
+      - ".github/known-issues.json"
       - ".github/workflows/build.yml"
       - ".github/workflows/gradle.yml"
       - ".github/workflows/scripts/**"
