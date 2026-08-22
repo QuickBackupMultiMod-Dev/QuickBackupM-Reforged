@@ -30,7 +30,7 @@ public class ScheduleManager {
             } else {
                 QuickbackupmultiReforged.logger.info("Start schedule: {}, next execute time: {}",
                     schedule.getName(),
-                    QuickbackupmultiReforged.formatTimestamp(schedule.getNextExecuteTime())
+                    schedule.formatNextExecuteTime()
                 );
             }
         }
@@ -43,6 +43,9 @@ public class ScheduleManager {
                 QuickbackupmultiReforged.logger.info("Stop schedule: {}", schedule.getName());
             }
         }
+        // Every schedule shares one Quartz scheduler and its threads are not daemons, so it has to be
+        // shut down explicitly once all the jobs are gone or the JVM will not exit.
+        ModSchedule.shutdownSharedScheduler();
     }
 
     public static void clearAllSchedule() {
