@@ -5,7 +5,9 @@ import net.minecraft.network.PacketProcessor;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerConnectionListener;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.validation.ContentValidationException;
 
 import java.io.IOException;
@@ -29,6 +31,12 @@ public class ServerManager {
             this.server.storageSource = levelStorageSource.validateAndCreateAccess(
                 this.server.storageSource.getLevelId()
             );
+            this.server.savedDataStorage =
+                new SavedDataStorage(
+                    this.server.storageSource.getLevelPath(LevelResource.DATA),
+                    this.server.getFixerUpper(),
+                    this.server.registries().compositeAccess()
+                );
             this.server.playerDataStorage = this.server.storageSource.createPlayerStorage();
             this.server.packetProcessor = new PacketProcessor(this.server.getRunningThread());
             this.server.runServer();
