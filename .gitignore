@@ -119,7 +119,12 @@ runs/
 !gradle-wrapper.jar
 /fastSync.ps1
 
-.setting/
+# Eclipse / JDT language server (LSP) artifacts
+.classpath
+.project
+.factorypath
+.settings/
+*.prefs
 bin/
 
 .claude
