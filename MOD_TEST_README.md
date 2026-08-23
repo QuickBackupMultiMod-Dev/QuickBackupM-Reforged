@@ -66,6 +66,7 @@
 | `qbm.sides` | `-Pqbm.sides=server` | 只测试服务器端或客户端 |
 | `qbm.scenarios` | `-Pqbm.scenarios=boot,lifecycle` | 只运行指定的场景 |
 | `qbm.keepRunDirs` | `-Pqbm.keepRunDirs=true` | 保留运行目录以供调试 |
+| `qbm.forceRobot` | `-Pqbm.forceRobot=true` | 强制走 Robot 键盘回退（仅本机；裸 Xvfb 下不可用） |
 
 ### 常用组合
 

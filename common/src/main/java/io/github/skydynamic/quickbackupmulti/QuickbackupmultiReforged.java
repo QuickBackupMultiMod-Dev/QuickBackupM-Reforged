@@ -5,6 +5,7 @@ import io.github.skydynamic.increment.storage.lib.utils.StorageManager;
 import io.github.skydynamic.quickbackupmulti.command.ModCommand;
 import io.github.skydynamic.quickbackupmulti.config.ModConfig;
 import io.github.skydynamic.quickbackupmulti.database.DatabaseManager;
+import io.github.skydynamic.quickbackupmulti.harness.HarnessCommandChannel;
 import io.github.skydynamic.quickbackupmulti.schedule.quartz.DisableQuartzInfoLogger;
 import io.github.skydynamic.quickbackupmulti.translate.Translate;
 import io.github.skydynamic.quickbackupmulti.utils.UpdateChecker;
@@ -35,6 +36,8 @@ public final class QuickbackupmultiReforged {
 
     public static void init(ModContainer container) {
         modContainer = container;
+        logger.info("QuickBackupMulti {} initializing (env: {})",
+            container.getModVersion(), container.getEnvType());
 
         // Initialize Config
         modConfig = new ModConfig(modContainer.getConfigPath().resolve(MOD_NAME + ".json"));
@@ -57,6 +60,16 @@ public final class QuickbackupmultiReforged {
 
         // Disable Quartz Info Logger
         DisableQuartzInfoLogger.disable();
+
+        // The functional test harness's command channel. Both halves of this condition matter: the
+        // property keeps it out of a real game, and the client check keeps HarnessCommandChannel — which
+        // references Minecraft — from ever being loaded on a dedicated server.
+        if (container.getEnvType() == ModEnvType.CLIENT
+            && Boolean.getBoolean(HarnessCommandChannel.ENABLE_PROPERTY)) {
+            HarnessCommandChannel.startIfEnabled();
+        }
+
+        logger.info("QuickBackupMulti initialization complete");
     }
 
     public static void registerCommand() {

@@ -100,6 +100,9 @@ tasks.register("functionalTest", Test) {
     // Keeps each scenario's run directory after it finishes instead of deleting it, for debugging a
     // failure by hand: -Pqbm.keepRunDirs=true
     forProperty(it, "qbm.keepRunDirs")
+    // Forces the Robot keystroke fallback instead of the stdin channel. Local-only: a bare Xvfb
+    // has no window manager, so this cannot work in CI. -Pqbm.forceRobot=true
+    forProperty(it, "qbm.forceRobot")
 
     // Clients need a real (or virtual) display; on a headless runner the workflow supplies one and
     // sets this so the test can fail with a clear message rather than a Mesa/GLFW stack trace.

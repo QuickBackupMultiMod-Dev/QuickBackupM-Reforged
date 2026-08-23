@@ -5,7 +5,7 @@
   "minVersion": "0.8",
   "client": [
     "client.MixinIntegratedServer",
-    "client.MixinWorldOpenFlows",
+    "client.MixinMinecraft",
     "client.MixinWorldSelectionListWorldListEntry",
     "client.MixinXaeroMinimapCore"
   ],

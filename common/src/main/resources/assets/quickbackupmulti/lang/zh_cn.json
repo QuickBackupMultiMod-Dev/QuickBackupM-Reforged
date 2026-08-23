@@ -11,6 +11,7 @@
   "quickbackupmulti.make.success": "§a备份§r完成，耗时§6%s§r秒",
   "quickbackupmulti.make.fail": "§a备份§r失败，错误原因%s",
   "quickbackupmulti.make.fail_exists": "§a备份§r失败，错误原因: 槽位已存在",
+  "quickbackupmulti.make.already_running": "§a备份§r失败，错误原因: 已有一个备份正在进行中",
   "quickbackupmulti.delete.success": "删除槽位§6%s§r§a完成§r",
   "quickbackupmulti.delete.fail": "删除槽位§6%s§r§4失败§r",
   "quickbackupmulti.export.start": "正在§a导出§r槽位§6%s§r...请稍等",

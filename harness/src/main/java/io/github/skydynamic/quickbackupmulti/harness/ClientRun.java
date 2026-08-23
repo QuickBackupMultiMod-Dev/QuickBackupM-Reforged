@@ -29,13 +29,32 @@ import java.util.regex.Pattern;
  *   <li>{@code --quickPlaySingleplayer} loads a world, which runs {@code MixinIntegratedServer} and the
  *       world-load handler that registers schedules and opens the per-world database.</li>
  * </ul>
- * {@code /qb} commands, including a full {@code restore} + {@code confirm}, are driven through the chat
- * box with {@link ClientInput}'s {@code java.awt.Robot} keyboard injection — the client has no stdin
- * command reader, so this is the same input path a real player uses, not a workaround.
+ * {@code /qb} commands, including a full {@code restore} + {@code confirm}, are driven through
+ * {@link ClientCommandChannel} — the mod's own stdin channel where available, synthetic keystrokes
+ * otherwise. Either way the command reaches the game the same way a player's does; the client has no
+ * console of its own, so this is not a workaround so much as the only in-band route there is.
  */
 public final class ClientRun implements AutoCloseable {
-    /** Printed once the client has a window and has finished its initial resource reload. */
-    private static final String MENU_READY = "Time to start:";
+    /**
+     * The last stage of the client's initial resource reload that logs anything version-stable.
+     *
+     * <p>Reaching the title screen itself is <em>not</em> observable: vanilla logs nothing when the
+     * loading overlay hands over to a screen, so there is no "menu ready" line to wait for. This marker
+     * is the closest observable point — the sound engine comes up inside the first resource reload, well
+     * after the mod's client entrypoint has run — and the menu scenario is scoped to what that actually
+     * proves. It is {@link #bootIntoWorld} that gates on the client being interactive, because
+     * {@code --quickPlaySingleplayer} only fires once the initial screen chain has been worked through.
+     */
+    private static final String BOOT_PROGRESSED = "Sound engine started";
+    /**
+     * Logged by the server's player list once the player is actually in the world.
+     *
+     * <p>The integrated server does not log a "world is ready" line of its own —
+     * {@code Done (…)! For help, type "help"} comes from {@code DedicatedServer} and never appears on a
+     * client. This is the next observable thing, and it is the right gate anyway: it means the player
+     * entity exists and the chat box {@link ClientInput} types into will accept a command.
+     */
+    private static final String WORLD_READY = "logged in with entity id";
     private static final Duration BOOT_TIMEOUT = Duration.ofMinutes(10);
 
     private final HarnessConfig config;
@@ -106,6 +125,7 @@ public final class ClientRun implements AutoCloseable {
             mods.resolve("quickbackupmulti.jar"));
 
         modConfig.writeTo(runDir);
+        writeGameOptions(runDir);
 
         // An argfile keeps the classpath (hundreds of entries) off a command line Windows would truncate.
         // Inside an argfile a backslash escapes the next character, so Windows paths must be doubled.
@@ -120,6 +140,12 @@ public final class ClientRun implements AutoCloseable {
         command.add("-Djava.library.path=" + nativesDir.toAbsolutePath());
         // Fabric resolves mods and config relative to the game directory, not the working directory.
         command.add("-Dfabric.gameVersion=" + mcVersion);
+        // Asks the mod under test to listen for commands on stdin. Without it the mod behaves exactly as
+        // a shipped build does, and the scenario falls back to synthetic keystrokes. -Pqbm.forceRobot
+        // skips this so the fallback path can be exercised on a machine that has a real window manager.
+        if (!config.forceRobot()) {
+            command.add("-Dqbm.harness.channel=true");
+        }
         if (!config.displayAvailable()) {
             // Without a display GLFW aborts in native code. Say so up front instead.
             throw new HarnessException("A client run needs a display; on a headless Linux runner start "
@@ -143,9 +169,40 @@ public final class ClientRun implements AutoCloseable {
         return new ClientRun(config, mcVersion, runDir, logDir, command);
     }
 
-    /** Boots to the main menu and waits until the client is interactive. */
+    /**
+     * Writes the {@code options.txt} a fresh client would otherwise not have.
+     *
+     * <p>Without this file the client treats the run as a first launch and puts the accessibility
+     * onboarding screen in front of everything else. That screen is modal: it blocks the title screen and,
+     * because {@code --quickPlaySingleplayer} is only applied once the initial screen chain has been worked
+     * through, it blocks world loading too. Nothing is logged when it appears, so the client just sits
+     * there looking healthy — the log ends after the texture atlases, the process stays alive and keeps
+     * rendering, and every wait times out with no indication why. Dismissing it would need a mouse click at
+     * a screen position that moves between versions, so turning it off is the only stable option.
+     *
+     * <p>The rest are here to keep a scenario from depending on the host: the multiplayer warning is
+     * another modal, the tutorial toasts overlap the chat box {@link ClientInput} types into, and a client
+     * that pauses when it loses focus stops ticking the moment the window manager hands focus elsewhere —
+     * which would stall a scenario on a machine someone is also using.
+     */
+    private static void writeGameOptions(Path runDir) throws IOException {
+        Files.writeString(runDir.resolve("options.txt"), String.join(System.lineSeparator(), List.of(
+            "onboardAccessibility:false",
+            "skipMultiplayerWarning:true",
+            "tutorialStep:none",
+            "pauseOnLostFocus:false",
+            "narrator:0",
+            "")));
+    }
+
+    /**
+     * Boots the client and waits until it is far enough in to have loaded the mod and its resources.
+     *
+     * <p>This deliberately stops short of claiming the main menu was reached — see
+     * {@link #BOOT_PROGRESSED} for why that is unobservable from the log.
+     */
     public ClientRun bootToMenu() throws IOException, InterruptedException {
-        return boot(List.of(), MENU_READY, BOOT_TIMEOUT);
+        return boot(List.of(), BOOT_PROGRESSED, BOOT_TIMEOUT);
     }
 
     /**
@@ -160,6 +217,42 @@ public final class ClientRun implements AutoCloseable {
             // The integrated server prints this once the world is up, which is the point at which the
             // mod's world-load handler has run.
             "Starting integrated minecraft server version", BOOT_TIMEOUT);
+    }
+
+    /**
+     * Blocks until the player is in the world, which is later than the integrated server merely starting
+     * and is what a chat command needs. See {@link #WORLD_READY}.
+     */
+    public void awaitWorldReady(Duration timeout) throws InterruptedException {
+        client().awaitLine(WORLD_READY, timeout);
+    }
+
+    /**
+     * A command channel into this client, ready to use.
+     *
+     * <p>Prefers the mod's own stdin channel, which needs neither a focused window nor a keyboard and is
+     * the only thing that can work on a CI runner whose display is a bare Xvfb with no window manager.
+     * Falls back to synthetic keystrokes when the running mod does not offer one — an older build, or a
+     * branch this has not been ported to yet — so a scenario still runs rather than failing on the
+     * mechanism.
+     *
+     * <p>The fallback is verified before it is handed out, because input that lands in another window
+     * produces no log line at all and is indistinguishable from a command that arrived and did nothing.
+     * Call this only once the player is in the world — see {@link #awaitWorldReady}.
+     */
+    public ClientCommandChannel commands() throws InterruptedException {
+        ClientCommandChannel channel;
+        if (InGameCommandChannel.availableOn(client())) {
+            channel = new InGameCommandChannel(client());
+        } else {
+            ClientInput input = new ClientInput(client(), client().pid());
+            input.verifyReachesClient();
+            channel = input;
+        }
+        // Which channel a run used decides how to read everything after it, so say so plainly rather than
+        // letting a silent downgrade look like a normal run.
+        System.out.println("[harness] client " + mcVersion + " commands via " + channel.describe());
+        return channel;
     }
 
     private ClientRun boot(List<String> extraArgs, String marker, Duration timeout)
@@ -209,11 +302,16 @@ public final class ClientRun implements AutoCloseable {
     }
 
     /**
-     * The client keeps a separate backup store per world, under {@code <storagePath>/<levelId>}, because
-     * one client can hold many worlds. Collections are keyed by level id rather than by {@code "server"}.
+     * The client keeps one shared database but a separate blob directory per world.
+     *
+     * <p>{@code QuickbackupmultiReforged.setNewDataBase} points {@code DatabaseManager} at the configured
+     * {@code storagePath} while handing {@code StorageManager} a copy of the config with
+     * {@code /<levelId>} appended, so the two are <em>not</em> in the same place on a client the way they
+     * are on a dedicated server. Collections are keyed by level id rather than by {@code "server"}.
      */
     public BackupStore store(String levelId) {
-        return new BackupStore(runDir.resolve("QuickBackupMulti").resolve(levelId), levelId);
+        Path storage = runDir.resolve("QuickBackupMulti");
+        return new BackupStore(storage, storage.resolve(levelId), levelId);
     }
 
     /** Asks the client to quit, then makes sure it is gone. */

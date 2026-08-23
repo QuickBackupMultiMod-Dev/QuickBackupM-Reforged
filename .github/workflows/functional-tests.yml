@@ -64,14 +64,27 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        if: ${{ steps.guard.outputs.present == 'true' }}
+        if: ${{ steps.guard.outputs.present == 'true' && env.ACT != 'true' }}
         uses: actions/setup-java@v4
         with:
           java-version: "21"
           distribution: temurin
 
+      - name: Install JDK 21 (act)
+        if: ${{ steps.guard.outputs.present == 'true' && env.ACT == 'true' }}
+        run: |
+          # setup-java downloads Temurin from GitHub; the Docker Linux VM often cannot reach it.
+          # A local image built from .github/act/Dockerfile already has this JDK.
+          if [ ! -x /usr/lib/jvm/java-21-openjdk-amd64/bin/java ]; then
+            sudo apt-get update
+            sudo apt-get install -y openjdk-21-jdk-headless
+          fi
+          echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
+          echo "/usr/lib/jvm/java-21-openjdk-amd64/bin" >> "$GITHUB_PATH"
+          java -version
+
       - name: Cache gradle files
-        if: ${{ steps.guard.outputs.present == 'true' }}
+        if: ${{ steps.guard.outputs.present == 'true' && env.ACT != 'true' }}
         uses: actions/cache@v4
         with:
           path: |
@@ -86,6 +99,7 @@ jobs:
         id: matrix
         if: ${{ steps.guard.outputs.present == 'true' }}
         run: |
+          sed -i 's/\r$//' gradlew
           chmod +x gradlew
           MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
           ./gradlew ":${MOD_ID}-harness:printMcMatrix" --no-daemon -q || true
@@ -110,6 +124,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDKs
+        if: ${{ env.ACT != 'true' }}
         uses: actions/setup-java@v4
         with:
           # The game may need a newer JDK than the harness. Install both and expose the game one via
@@ -120,13 +135,27 @@ jobs:
           distribution: temurin
 
       - name: Expose game JDK
+        if: ${{ env.ACT != 'true' }}
         run: |
           # setup-java writes JAVA_HOME_<major>_X64; alias it to the JAVA<major>_HOME the harness expects.
           GAME_JAVA="${{ matrix.game_java }}"
           VAR="JAVA_HOME_${GAME_JAVA}_X64"
           echo "JAVA${GAME_JAVA}_HOME=${!VAR}" >> "$GITHUB_ENV"
 
+      - name: Install JDK 21 (act)
+        if: ${{ env.ACT == 'true' }}
+        run: |
+          if [ ! -x /usr/lib/jvm/java-21-openjdk-amd64/bin/java ]; then
+            sudo apt-get update
+            sudo apt-get install -y openjdk-21-jdk-headless
+          fi
+          echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
+          echo "JAVA${{ matrix.game_java }}_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
+          echo "/usr/lib/jvm/java-21-openjdk-amd64/bin" >> "$GITHUB_PATH"
+          java -version
+
       - name: Cache gradle + harness downloads
+        if: ${{ env.ACT != 'true' }}
         uses: actions/cache@v4
         with:
           path: |
@@ -141,6 +170,10 @@ jobs:
 
       - name: Install headless display deps
         run: |
+          if command -v xvfb-run >/dev/null 2>&1; then
+            echo "xvfb already present"
+            exit 0
+          fi
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils xauth
 
@@ -150,13 +183,19 @@ jobs:
           # Marks that a virtual display will be provided, so the client tests attempt to run instead of
           # skipping. The Xvfb wrapper below supplies the actual DISPLAY.
           QBM_HEADLESS_DISPLAY: "1"
+          # Xvfb has no GPU, so make Mesa go straight to its software rasteriser instead of probing for
+          # hardware and falling over. Only the client half reads this; the server never opens a context.
+          LIBGL_ALWAYS_SOFTWARE: "1"
           QBM_BRANCH: ${{ github.ref_name }}
         run: |
+          sed -i 's/\r$//' gradlew
           chmod +x gradlew
           MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
           ARGS="-Pqbm.versions=${{ matrix.mc }} -Pqbm.loaders=${{ matrix.loader }}"
           if [ -n "${{ inputs.sides }}" ]; then ARGS="$ARGS -Pqbm.sides=${{ inputs.sides }}"; fi
-          # xvfb-run gives the client a virtual framebuffer; the server half ignores it.
+          # xvfb-run gives the client a virtual framebuffer; the server half ignores it. No window manager
+          # is installed, and none is needed: commands reach the client through the mod's stdin channel
+          # rather than through a focused window.
           xvfb-run -a --server-args="-screen 0 1280x1024x24" \
             ./gradlew ":${MOD_ID}-harness:functionalTest" $ARGS --no-daemon
 
@@ -172,7 +211,7 @@ jobs:
   # Aggregate the per-(mc,loader) reports into one, and fail the workflow if any real (non-marked)
   # incompatibility was found. This is the job a release gate waits on.
   gate:
-    needs: test
+    needs: [resolve-matrix, test]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
@@ -187,4 +226,6 @@ jobs:
           merge-multiple: false
 
       - name: Aggregate and gate
+        env:
+          MATRIX: ${{ needs.resolve-matrix.outputs.matrix }}
         run: python3 .github/workflows/scripts/functional_gate.py reports

@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,9 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * GUI interaction ({@link io.github.skydynamic.quickbackupmulti.restore.ClientRestoreDelegate} runs
  * fully automatically once armed) — exercises a full client-driven restore too.
  *
- * <p>Commands are typed via {@link ClientInput}, which injects real keyboard events with
- * {@code java.awt.Robot}. That is the only in-band command channel a client has: unlike a dedicated
- * server, the game does not read commands from stdin.
+ * <p>Commands go through {@link ClientCommandChannel}: normally the mod's own stdin channel, which needs
+ * no window focus and so works on a headless CI runner, falling back to {@link ClientInput}'s
+ * {@code java.awt.Robot} keystrokes when a build does not offer one. Either way it is the client's real
+ * command path — unlike a dedicated server, the game reads no commands from stdin by itself.
  *
  * <p>The code under test is {@code common}, loaded identically by Fabric and NeoForge, so only Fabric
  * clients are tested — the NeoForge client has <em>loader</em> differences (different entrypoint wiring,
@@ -30,13 +30,18 @@ class ClientLifecycleTest extends FunctionalTestBase {
     private static final String LEVEL_ID = "qbm-harness-test";
 
     /**
-     * Boots the Fabric client to the main menu.
+     * Boots the Fabric client far enough to prove the mod loaded into it.
      *
-     * <p>Reaching the menu means Mixin applied, the mod's client entrypoint ran, and the resource packs
-     * and language files loaded without error. That is already a stronger version-drift signal than a
-     * compile, because a mixin targeting a method that moved aborts the client with {@code required: true}.
+     * <p>Getting this far means Mixin applied, the mod's client entrypoint ran, and the resource and
+     * language files loaded without error. That is already a stronger version-drift signal than a compile,
+     * because a client mixin targeting a method that moved aborts startup with {@code required: true}.
+     *
+     * <p>It stops short of asserting the main menu was reached, because vanilla logs nothing when the
+     * loading overlay hands over to a screen — there is no marker to wait for. The two world scenarios
+     * below are what cover that: {@code --quickPlaySingleplayer} only takes effect once the client has
+     * worked through its initial screen chain, so anything blocking the menu fails them.
      */
-    @ParameterizedTest(name = "{0} / Fabric client — boots to menu")
+    @ParameterizedTest(name = "{0} / Fabric client — boots with the mod loaded")
     @MethodSource("clientMatrix")
     void clientBootsToMenu(String mc) {
         if (!config.displayAvailable()) {
@@ -49,6 +54,12 @@ class ClientLifecycleTest extends FunctionalTestBase {
                 run.bootToMenu();
                 assertTrue(run.client().sawLine("QuickBackupMulti"),
                     "The mod's client entrypoint did not log anything, so it may not have run");
+                assertFalse(run.client().sawLine("Mixin apply failed"),
+                    "A client mixin failed to apply on Minecraft " + mc);
+                // Startup carries on asynchronously past the boot marker, so a client that dies while
+                // finishing up would otherwise go unnoticed.
+                assertTrue(run.client().isAlive(),
+                    "The client exited during startup instead of settling into its game loop");
                 run.quit();
             }
         });
@@ -86,22 +97,23 @@ class ClientLifecycleTest extends FunctionalTestBase {
                     run.bootIntoWorld(LEVEL_ID);
 
                     // bootIntoWorld only waits for the integrated server to start, which is earlier than
-                    // it finishing loading; a plain sawLine would race that, so block for it instead.
+                    // the world finishing loading; block until the player is actually in it before typing.
                     assertTrue(run.client().sawLine("Starting integrated minecraft server"),
                         "The integrated server never started");
-                    run.client().awaitLine("Done (", Duration.ofMinutes(3));
+                    run.awaitWorldReady(Duration.ofMinutes(3));
 
-                    // The store's database lives at the top level, but blobs go under a per-world subdirectory.
+                    // Making one backup is what proves the world-load path ran: the client only points the
+                    // mod at a database and a blob directory when a world is opened, so a working
+                    // /qb make covers both. It also proves a real player-typed chat command reaches the
+                    // mod's command dispatcher.
+                    run.commands().sendCommand("qb make clientprobe");
+                    run.client().awaitLine("Make Backup thread close", Duration.ofMinutes(5));
+
+                    // Asserted after the backup rather than straight after boot: the database file itself
+                    // only has to exist once something has been written to it.
                     BackupStore store = run.store(LEVEL_ID);
                     assertTrue(store.exists(),
                         "The mod did not create its H2 database at the top-level storage path");
-
-                    // Making one backup proves the blob directory is in the right place and the mod can
-                    // write to it, and proves a real player-typed chat command reaches the mod's command
-                    // dispatcher.
-                    new ClientInput().sendCommand("qb make clientprobe");
-                    run.client().awaitLine("Make Backup thread close", Duration.ofMinutes(5));
-
                     assertTrue(store.hasBackup("clientprobe"),
                         "The backup did not record a row in storage_info");
                     assertFalse(store.blobHashes().isEmpty(),
@@ -142,9 +154,9 @@ class ClientLifecycleTest extends FunctionalTestBase {
                 try (ClientRun run = ClientRun.provision(config, mc, "restore", modConfig)) {
                     run.installSave(seed.worldDir(), LEVEL_ID);
                     run.bootIntoWorld(LEVEL_ID);
-                    run.client().awaitLine("Done (", Duration.ofMinutes(3));
+                    run.awaitWorldReady(Duration.ofMinutes(3));
 
-                    ClientInput input = new ClientInput();
+                    ClientCommandChannel input = run.commands();
                     input.sendCommand("qb make clientprobe");
                     run.client().awaitLine("Make Backup thread close", Duration.ofMinutes(5));
 
@@ -181,8 +193,21 @@ class ClientLifecycleTest extends FunctionalTestBase {
                     Path nested = worldDir.resolve(LEVEL_ID);
                     assertFalse(Files.exists(nested),
                         "A client restore created a nested world directory at " + nested);
-                    assertEquals(expectedFiles, ServerRun.relativeFiles(worldDir),
-                        "The restored world's files do not match what the backup recorded");
+
+                    // Every file the backup captured has to be back, but the world is live again by now:
+                    // clientAutoReJoinWorld reopens it, and the integrated server writes fresh entities/
+                    // and poi/ region files as it loads chunks. Asserting an exact file set here would be
+                    // asserting on world simulation rather than on the restore, and would pass or fail
+                    // depending on how far the rejoin had got — the same reason the dedicated-server
+                    // lifecycle test compares this way round too. The sentinel above is what proves
+                    // nothing merely survived untouched.
+                    List<String> restoredFiles = ServerRun.relativeFiles(worldDir);
+                    List<String> missing = expectedFiles.stream()
+                        .filter(f -> !restoredFiles.contains(f)).toList();
+                    assertTrue(missing.isEmpty(),
+                        "The restore did not put back files the backup recorded: " + missing);
+                    assertTrue(restoredFiles.contains("level.dat"),
+                        "The restored world has no level.dat, so it is not loadable");
 
                     run.quit();
                 }

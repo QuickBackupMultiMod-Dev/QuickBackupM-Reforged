@@ -45,6 +45,14 @@ cat build/mc-matrix.json
 
 An absent filter means "everything"; `-Pqbm.versions=1.21` narrows to exactly that version. The four
 filters are `qbm.versions`, `qbm.loaders`, `qbm.sides` (`server`/`client`), `qbm.scenarios`.
+`-Pqbm.forceRobot=true` disables the stdin command channel so a client scenario is driven by
+`java.awt.Robot` instead — local-only, it cannot work under a bare Xvfb:
+
+```bash
+./gradlew :<mod_id>-harness:functionalTest \
+  -Pqbm.versions=1.21 -Pqbm.loaders=fabric -Pqbm.sides=client \
+  -Pqbm.scenarios=world -Pqbm.forceRobot=true
+```
 
 ### JDK requirements
 
@@ -74,6 +82,66 @@ xvfb-run -a ./gradlew :<mod_id>-harness:functionalTest -Pqbm.sides=client
 The NeoForge **client** is intentionally out of scope — it needs an interactive launcher profile. The
 mod's client code lives in `common` and loads identically under both loaders, so the Fabric client covers
 it.
+
+### Simulating CI with nektos/act
+
+The `Functional tests` workflow is Linux + Xvfb and cannot be reproduced on Windows. Use
+[nektos/act](https://github.com/nektos/act) against `.github/workflows/functional-tests.yml` instead of
+pushing.
+
+Prerequisites: Docker Desktop's Linux engine running, then `winget install nektos.act` (or
+`choco install act-cli`).
+
+1. Build the local runner image (JDK 21 + Xvfb on top of `catthehacker/ubuntu:act-22.04`;
+   `full-22.04` is too large to pull reliably):
+
+```bash
+docker pull catthehacker/ubuntu:act-22.04
+docker build -t qbm-act:22.04 .github/act
+docker volume create qbm-act-gradle
+```
+
+2. Clone the GitHub Actions the workflow uses. act clones `github.com` itself and often times out;
+   `--local-repository` in `.actrc` points at these checkouts (gitignored):
+
+```bash
+mkdir -p .github/act-actions
+for name in checkout setup-java cache upload-artifact download-artifact; do
+  git clone --depth 1 --branch v4 https://github.com/actions/$name.git .github/act-actions/$name
+done
+```
+
+3. Seed the Linux Gradle wrapper zip into the volume if `services.gradle.org` is slow from the
+   container (the zip is OS-independent; do **not** bind-mount a Windows `~/.gradle` — Gradle's
+   file journal then fails with `Input/output error`):
+
+```bash
+docker run --rm -v qbm-act-gradle:/root/.gradle -v "$PWD":/src qbm-act:22.04 \
+  bash -lc 'dest=/root/.gradle/wrapper/dists/gradle-8.14.5-bin/690y85m0j9nfaub7xoiayko8a
+    mkdir -p "$dest"
+    curl -fsSL https://services.gradle.org/distributions/gradle-8.14.5-bin.zip -o "$dest/gradle-8.14.5-bin.zip"
+    unzip -q -o "$dest/gradle-8.14.5-bin.zip" -d "$dest"
+    touch "$dest/gradle-8.14.5-bin.zip.ok"'
+```
+
+4. Run. `.actrc` already sets the image, artifact server, shm-size, Gradle volume, and local actions.
+   `ACT=true` makes the workflow skip `setup-java` / `actions/cache` (both talk to GitHub) and use
+   the image JDK.
+
+```bash
+# Dry-run the job graph:
+act workflow_dispatch -W .github/workflows/functional-tests.yml -e .github/workflows/act-event.json -n
+
+# 1.21 Fabric client under Xvfb (the path a Windows host cannot exercise):
+act workflow_dispatch \
+  -W .github/workflows/functional-tests.yml \
+  -e .github/workflows/act-event.json \
+  --input versions=1.21 \
+  --input loaders=fabric \
+  --input sides=client
+```
+
+A gate log that says `No reports found` is **not** a pass when the matrix was non-empty.
 
 ## Output
 

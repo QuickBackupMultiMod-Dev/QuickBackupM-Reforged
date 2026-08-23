@@ -26,12 +26,13 @@ public final class HarnessConfig {
     private final List<String> scenarioFilter;
     private final boolean displayAvailable;
     private final boolean keepRunDirs;
+    private final boolean forceRobot;
     private Provisioner provisioner;
 
     private HarnessConfig(Path repoRoot, Path cacheDir, Path workDir, Path reportDir, String branch,
                           List<String> versionFilter, List<String> loaderFilter,
                           List<String> sideFilter, List<String> scenarioFilter,
-                          boolean displayAvailable, boolean keepRunDirs) {
+                          boolean displayAvailable, boolean keepRunDirs, boolean forceRobot) {
         this.repoRoot = repoRoot;
         this.cacheDir = cacheDir;
         this.workDir = workDir;
@@ -43,6 +44,7 @@ public final class HarnessConfig {
         this.scenarioFilter = scenarioFilter;
         this.displayAvailable = displayAvailable;
         this.keepRunDirs = keepRunDirs;
+        this.forceRobot = forceRobot;
     }
 
     public static HarnessConfig fromSystemProperties() {
@@ -58,7 +60,8 @@ public final class HarnessConfig {
             csv("qbm.sides"),
             csv("qbm.scenarios"),
             Boolean.parseBoolean(System.getProperty("qbm.displayAvailable", "false")),
-            Boolean.parseBoolean(System.getProperty("qbm.keepRunDirs", "false")));
+            Boolean.parseBoolean(System.getProperty("qbm.keepRunDirs", "false")),
+            Boolean.parseBoolean(System.getProperty("qbm.forceRobot", "false")));
     }
 
     private static Path path(String key, Path fallback) {
@@ -100,6 +103,14 @@ public final class HarnessConfig {
     /** Keeps run directories after a scenario, for debugging a failure by hand. */
     public boolean keepRunDirs() {
         return keepRunDirs;
+    }
+
+    /**
+     * Disables the mod's stdin command channel so a scenario is forced onto {@code java.awt.Robot}.
+     * Local-only: a bare Xvfb has no window manager, so this cannot work in CI.
+     */
+    public boolean forceRobot() {
+        return forceRobot;
     }
 
     public boolean includesVersion(String mcVersion) {

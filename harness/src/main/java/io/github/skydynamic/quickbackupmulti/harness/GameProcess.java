@@ -266,6 +266,11 @@ public final class GameProcess implements AutoCloseable {
         return process.isAlive();
     }
 
+    /** The OS process id, which is how a client's window is located. */
+    public long pid() {
+        return process.pid();
+    }
+
     /** Waits for the process to exit on its own and returns its exit code. */
     public int awaitExit(Duration timeout) throws InterruptedException {
         if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {

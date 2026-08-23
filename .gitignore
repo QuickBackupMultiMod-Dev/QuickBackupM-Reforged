@@ -119,6 +119,12 @@ runs/
 !gradle-wrapper.jar
 /fastSync.ps1
 
+.claude/
+gradle-*.txt
+.act-artifacts/
+.github/act-actions/
+.github/act/*.tar.gz
+
 # Eclipse / JDT language server (LSP) artifacts
 .classpath
 .project

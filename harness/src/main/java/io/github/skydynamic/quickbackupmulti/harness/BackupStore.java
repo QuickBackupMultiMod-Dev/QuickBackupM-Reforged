@@ -166,8 +166,8 @@ public final class BackupStore {
         return withDatabase(conn -> {
             List<Backup> out = new ArrayList<>();
             try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT \"name\", \"desc\", \"timestamp\", \"use_incremental_storage\" "
-                    + "FROM \"storage_info\" WHERE \"collection_uuid\" = ?")) {
+                "SELECT \"name\", \"desc\", \"timestamp\", use_incremental_storage "
+                    + "FROM storage_info WHERE collection_uuid = ?")) {
                 ps.setObject(1, collectionUuid);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
@@ -183,8 +183,8 @@ public final class BackupStore {
     private String queryFileHashMap(String backupName) {
         return withDatabase(conn -> {
             try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT \"file_hash_map\" FROM \"file_hash\" "
-                    + "WHERE \"collection_uuid\" = ? AND \"name\" = ?")) {
+                "SELECT file_hash_map FROM file_hash "
+                    + "WHERE collection_uuid = ? AND \"name\" = ?")) {
                 ps.setObject(1, collectionUuid);
                 ps.setString(2, backupName);
                 try (ResultSet rs = ps.executeQuery()) {

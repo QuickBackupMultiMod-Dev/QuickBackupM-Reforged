@@ -11,6 +11,7 @@
   "quickbackupmulti.make.success": "§aBackup §rcompleted, It takes §6%s§rs",
   "quickbackupmulti.make.fail": "§aMake Backup failed，because: %s",
   "quickbackupmulti.make.fail_exists": "§aMake backup §rFailed，error msg: Slot already exists",
+  "quickbackupmulti.make.already_running": "§aMake backup §rFailed，error msg: A backup is already in progress",
   "quickbackupmulti.delete.success": "§aSuccess delete slot §6%s",
   "quickbackupmulti.delete.fail": "§4Fail§r to delete slot §6%s",
   "quickbackupmulti.export.start": "§aExporting§r slot §6%s§r...Please wait a moment",

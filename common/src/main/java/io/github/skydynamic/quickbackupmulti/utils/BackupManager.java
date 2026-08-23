@@ -25,6 +25,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.github.skydynamic.quickbackupmulti.translate.Translate.tr;
 
@@ -32,6 +37,17 @@ public class BackupManager {
     private static final Logger logger = LoggerFactory.getLogger("Qbm-BackupManager");
     private static final IOFileFilter folderFilter = new NotFileFilter(new NameFileFilter(QuickbackupmultiReforged.getModConfig().getIgnoredFolders()));
     private static final IOFileFilter fileFilter = new NotFileFilter(new NameFileFilter(QuickbackupmultiReforged.getModConfig().getIgnoredFiles()));
+
+    /**
+     * Guards against two backups running at once. {@code /qb make} and every schedule call the same
+     * {@code makeBackup}, and Quartz dispatches a job's next firing on a fresh worker thread without
+     * waiting for the previous one to finish — so a slow backup (or one that overlaps a manual
+     * {@code /qb make}) used to let a second {@code saveEverything} start while the first was still
+     * flushing chunks to disk. Both then queued onto the same world's I/O, neither ever finished, and
+     * every later schedule firing piled another stuck thread on top until the worker pool was
+     * exhausted and even {@code stop} could no longer be processed.
+     */
+    private static final AtomicBoolean backupInProgress = new AtomicBoolean(false);
 
     public static Path getBackupPath() {
         Path path = Path.of(QuickbackupmultiReforged.getModConfig().getStoragePath()).resolve(QuickbackupmultiReforged.getModContainer().getLevelId());
@@ -147,22 +163,82 @@ public class BackupManager {
         }
     }
 
+    /**
+     * Runs {@code task} on the server thread and waits for it, giving up if the server stops first.
+     *
+     * <p>{@code MinecraftServer.executeBlocking} queues the task on the server's event loop and blocks on
+     * the result. Once the server has left its tick loop nothing drains that queue again, so a task
+     * queued during or after shutdown never completes and the caller blocks forever. A scheduled backup
+     * runs on a Quartz worker thread and those are not daemon threads, so a single backup that fired a
+     * moment after {@code stop} was enough to keep the whole JVM alive: the server looked like it had
+     * ignored {@code stop} and had to be killed.
+     *
+     * <p>The wait is deliberately unbounded while the server is alive — saving a large world can take a
+     * long time and a timeout would abort a perfectly healthy backup. It is the server going away, not
+     * elapsed time, that ends the wait.
+     *
+     * @return whether the task ran to completion
+     */
+    private static boolean runOnServerThread(MinecraftServer server, Runnable task) {
+        if (server.isSameThread()) {
+            task.run();
+            return true;
+        }
+        if (!server.isRunning()) {
+            return false;
+        }
+        CompletableFuture<Void> future = CompletableFuture.runAsync(task, server);
+        while (true) {
+            try {
+                future.get(100, TimeUnit.MILLISECONDS);
+                return true;
+            } catch (TimeoutException e) {
+                if (!server.isRunning()) {
+                    return false;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            } catch (ExecutionException e) {
+                // Surfaced to the caller's catch block, which reports the backup as failed.
+                throw new RuntimeException(e.getCause());
+            }
+        }
+    }
+
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
         if (QuickbackupmultiReforged.getDatabase().storageExists(name)) {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail_exists")));
             return;
         }
+        MinecraftServer server = commandSource.getServer();
+        // A schedule fires on its own thread, so it can get here after `stop` has already halted the
+        // server. Saving the world needs the server thread and that thread is gone, so there is nothing
+        // useful left to do.
+        if (!server.isRunning()) {
+            logger.warn("Server is stopping, skip backup: {}", name);
+            return;
+        }
+        if (!backupInProgress.compareAndSet(false, true)) {
+            logger.warn("A backup is already running, skip this request: {}", name);
+            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.already_running")));
+            return;
+        }
         long startTime = System.currentTimeMillis();
+        boolean aborted = false;
         try {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.start")));
-            MinecraftServer server = commandSource.getServer();
-            server.executeBlocking(() -> {
+            if (!runOnServerThread(server, () -> {
                 server.saveEverything(true, true, true);
                 for (ServerLevel serverLevel : server.getAllLevels()) {
                     if (serverLevel == null || serverLevel.noSave) continue;
                     serverLevel.noSave = true;
                 }
-            });
+            })) {
+                aborted = true;
+                logger.warn("Server stopped before the world could be saved, abort backup: {}", name);
+                return;
+            }
 
             QuickbackupmultiReforged.getManager().incrementalStorage(
                 name,
@@ -176,17 +252,32 @@ public class BackupManager {
             double intervalTime = (endTime - startTime) / 1000.0;
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
 
-            server.executeBlocking(() -> {
+            if (!runOnServerThread(server, () -> {
                 for (ServerLevel serverLevel : server.getAllLevels()) {
                     if (serverLevel == null || !serverLevel.noSave) continue;
                     serverLevel.noSave = false;
                 }
-            });
+            })) {
+                // Not a failure: saveEverything above already flushed the world, and the flag only
+                // matters to a server that keeps running. The backup itself is complete.
+                logger.warn("Server stopped before saving could be re-enabled after backup: {}", name);
+            }
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
         } finally {
-            makeFullBackup();
+            // makeFullBackup also does storage/database I/O against the same backup path, so it stays
+            // inside the guard rather than releasing it early and letting a new request race the rotation.
+            // It is skipped when the backup was abandoned because the server went away: there is no backup
+            // for a full copy to be a baseline for, and the rotation would only start I/O that will be
+            // torn down mid-flight.
+            try {
+                if (!aborted) {
+                    makeFullBackup();
+                }
+            } finally {
+                backupInProgress.set(false);
+            }
         }
     }
 

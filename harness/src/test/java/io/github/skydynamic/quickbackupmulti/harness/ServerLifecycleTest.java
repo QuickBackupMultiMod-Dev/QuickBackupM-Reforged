@@ -76,10 +76,21 @@ class ServerLifecycleTest extends FunctionalTestBase {
                 assertFalse(store.fullBackupDirs().isEmpty(),
                     "No full backup was created to serve as a baseline for later increments");
 
+                // The world keeps ticking after makeBackup() returns (spawn-area chunk activity can add
+                // dimension files even with spawn-animals/monsters/npcs off and no players online), so a
+                // world directory read afterwards can only ever hold the same files or more. Asserting
+                // exact equality against that later snapshot is asserting on world simulation, not on the
+                // backup. What the backup actually promises is that everything it captured still exists on
+                // disk with the content it recorded, and that it captured the core save file — that is
+                // what capturedFiles.isEmpty() and filesIn("before") above already partly cover, and what
+                // this closes out.
                 List<String> capturedFiles = store.filesIn("before");
                 List<String> actualFiles = ServerRun.relativeFiles(run.worldDir());
-                assertEquals(capturedFiles, actualFiles,
-                    "The backup did not record the exact set of files the world actually held");
+                List<String> missing = capturedFiles.stream().filter(f -> !actualFiles.contains(f)).toList();
+                assertTrue(missing.isEmpty(),
+                    "The backup recorded files that are no longer present in the world: " + missing);
+                assertTrue(capturedFiles.contains("level.dat"),
+                    "The backup did not capture level.dat, which every backup must include");
 
                 // --- change the world so a restore has something to undo ---------------------------
                 // A dedicated server restore overlays the backed-up files onto the live world without
@@ -251,7 +262,20 @@ class ServerLifecycleTest extends FunctionalTestBase {
                     "Schedule scheduleBackup execute done",
                     "Schedule databaseSchedule execute done");
 
-                run.stop();
+                // A server with live schedules still has to shut down cleanly, and that is a stronger
+                // check than it looks. Schedules run on Quartz worker threads, which are not daemons, and
+                // a scheduled backup calls back onto the server thread to save the world. So a job that
+                // fires while the server is stopping waits on a thread that is already gone, and one such
+                // thread is enough to keep the JVM alive forever: the server looks like it ignored `stop`.
+                // Shutting the schedules down is also the point where the two loaders had drifted apart —
+                // NeoForge only ran the stop handler when a restore was pending, so a plain `stop` never
+                // tore the scheduler down at all.
+                assertEquals(0, run.server().stopServer(),
+                    "The server did not exit cleanly while schedules were running");
+
+                // Both loaders must actually tear the schedules down, not merely happen to exit.
+                run.server().awaitLine("Stop schedule: scheduleBackup", Duration.ofSeconds(30));
+                run.server().awaitLine("Stop schedule: databaseSchedule", Duration.ofSeconds(30));
             }
         });
     }

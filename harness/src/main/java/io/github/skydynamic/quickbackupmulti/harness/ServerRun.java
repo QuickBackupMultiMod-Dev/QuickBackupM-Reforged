@@ -95,18 +95,28 @@ public final class ServerRun implements AutoCloseable {
      * <p>NeoForge ships {@code run.sh}/{@code run.bat} wrappers, but going through a shell script would
      * put a process between the harness and the JVM, so stdin-driven commands and a clean kill both
      * become unreliable. The argfile the scripts reference is the stable part, so it is used directly.
+     *
+     * <p>On Windows, {@code win_args.txt} must be used: {@code unix_args.txt} has colon-separated
+     * classpaths that the JVM rejects as invalid paths on Windows.
      */
     private static List<String> neoForgeLaunchArgs(Path runDir, String neoForgeVersion) throws IOException {
-        Path argsFile = runDir.resolve("libraries/net/neoforged/neoforge/" + neoForgeVersion
-            + "/unix_args.txt");
-        if (!Files.exists(argsFile)) {
-            Path win = runDir.resolve("libraries/net/neoforged/neoforge/" + neoForgeVersion
+        String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+        boolean isWindows = os.contains("win");
+
+        Path argsFile;
+        if (isWindows) {
+            argsFile = runDir.resolve("libraries/net/neoforged/neoforge/" + neoForgeVersion
                 + "/win_args.txt");
-            if (Files.exists(win)) {
-                argsFile = win;
-            } else {
+            if (!Files.exists(argsFile)) {
                 throw new HarnessException("NeoForge " + neoForgeVersion
-                    + " installed without an args file; looked in " + argsFile.getParent());
+                    + " did not produce win_args.txt (required on Windows)");
+            }
+        } else {
+            argsFile = runDir.resolve("libraries/net/neoforged/neoforge/" + neoForgeVersion
+                + "/unix_args.txt");
+            if (!Files.exists(argsFile)) {
+                throw new HarnessException("NeoForge " + neoForgeVersion
+                    + " did not produce unix_args.txt");
             }
         }
         // @argfile keeps the (very long) classpath off the command line, which Windows would truncate.
@@ -164,14 +174,22 @@ public final class ServerRun implements AutoCloseable {
      * <p>The wait targets {@code Make Backup thread close}, which the mod logs unconditionally in
      * English, rather than the translated success message: the latter comes from a language file and
      * would silently stop matching if a translation changed.
+     *
+     * <p>{@code awaitLine} always scans from the start of the log, so it returns immediately for a
+     * marker that already appeared during an earlier {@code makeBackup} call in the same scenario —
+     * this call would then return before its own backup thread even started, letting a caller that
+     * makes several backups in a row race them all in parallel instead of serially. A baseline count
+     * taken before sending the command makes this wait for a <em>new</em> occurrence instead, the same
+     * fix used in {@link #restore}.
      */
     public void makeBackup(String name) throws InterruptedException {
         makeBackup(name, Duration.ofMinutes(5));
     }
 
     public void makeBackup(String name, Duration timeout) throws InterruptedException {
+        int before = server().occurrences("Make Backup thread close");
         server().send("qb make \"" + name + "\"");
-        server().awaitLine("Make Backup thread close", timeout);
+        server().awaitOccurrences("Make Backup thread close", before + 1, timeout);
     }
 
     private static final Duration RESTORE_TIMEOUT = Duration.ofMinutes(5);

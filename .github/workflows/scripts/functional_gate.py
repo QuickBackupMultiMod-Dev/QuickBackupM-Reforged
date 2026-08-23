@@ -50,9 +50,23 @@ def main():
 
     reports = load_reports(sys.argv[1])
 
+    matrix_raw = os.environ.get('MATRIX', '')
+    expect = False
+    if matrix_raw and matrix_raw not in ('', '{"include":[]}'):
+        try:
+            expect = bool(json.loads(matrix_raw).get('include'))
+        except json.JSONDecodeError:
+            expect = True
+
     if not reports:
-        # No reports at all usually means every shard was skipped (no harness on this branch, or the
-        # matrix was empty). That is not a failure — there was simply nothing to test.
+        # An empty matrix (no harness, or filtered to nothing) is not a failure. A non-empty matrix
+        # with no reports usually means the test job never uploaded artifacts — which under act is
+        # a missing artifact server, and on GitHub is a broken shard. Either way the gate must fail
+        # rather than look green.
+        if expect:
+            print('Matrix was non-empty but no compatibility.json arrived; failing the gate.',
+                  file=sys.stderr)
+            sys.exit(1)
         summary('## Functional tests\n\nNo compatibility reports were produced (nothing to test).\n')
         print('No reports found; passing.')
         return

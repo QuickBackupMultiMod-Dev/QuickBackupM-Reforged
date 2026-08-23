@@ -36,13 +36,24 @@ public class ScheduleManager {
         }
     }
 
-    public static void stopAllSchedule() {
+    /**
+     * Unschedules every job without touching the shared scheduler, so nothing fires again.
+     *
+     * <p>Split out from {@link #stopAllSchedule()} for the shutdown path: the scheduler must keep its
+     * worker pool until any job already in flight has finished, because shutting it down waits for that
+     * job while the job is waiting on the server thread that is doing the shutting down.
+     */
+    public static void stopAllScheduleJobs() {
         for (IModSchedule schedule : QuickbackupmultiReforged.getModContainer().getSchedules()) {
             if (schedule.isRunning()) {
                 schedule.stopSchedule();
                 QuickbackupmultiReforged.logger.info("Stop schedule: {}", schedule.getName());
             }
         }
+    }
+
+    public static void stopAllSchedule() {
+        stopAllScheduleJobs();
         // Every schedule shares one Quartz scheduler and its threads are not daemons, so it has to be
         // shut down explicitly once all the jobs are gone or the JVM will not exit.
         ModSchedule.shutdownSharedScheduler();
