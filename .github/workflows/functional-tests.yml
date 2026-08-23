@@ -186,6 +186,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils xauth
 
+      - name: Point harness cache at the Docker volume (act)
+        if: ${{ env.ACT == 'true' }}
+        run: echo "QBM_HARNESS_CACHE=/root/.qbm-harness-cache" >> "$GITHUB_ENV"
+
       - name: Run functional tests
         env:
           QBM_HARNESS_CACHE: ${{ github.workspace }}/harness-cache
