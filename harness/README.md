@@ -90,7 +90,9 @@ Windows. Use [nektos/act](https://github.com/nektos/act) against
 `.github/workflows/functional-tests.yml` instead of pushing.
 
 Prerequisites: Docker Desktop with the **Linux** engine running, then
-`winget install nektos.act` (or `choco install act-cli`).
+`winget install nektos.act` (or `choco install act-cli`). A winget install
+may not put `act` on PATH until you open a **new terminal**. Run `setup`
+before smoke/client/matrix (image, volumes, local actions, Gradle wrapper).
 
 ```bash
 pwsh ./scripts/act-ci.ps1 setup      # image, volumes, local actions, Gradle wrapper
@@ -100,10 +102,14 @@ pwsh ./scripts/act-ci.ps1 smoke      # 1.21 Fabric server / boot
 pwsh ./scripts/act-ci.ps1 client     # 1.21 Fabric client / menu under Xvfb
 ```
 
-`.actrc` pins `qbm-act:22.04`, the artifact server, `--shm-size=2gb`, the
-Gradle + harness-cache volumes, and `--local-repository` for the v4 actions
-cloned into `.github/act-actions/` (gitignored). `ACT=true` makes the
-workflow skip `setup-java` / `actions/cache`.
+`.actrc` pins `qbm-act:22.04`, the artifact server, `--shm-size=2gb`,
+`--network qbm-act`, `--bind`, the Gradle + harness-cache volumes, and
+`--local-repository` for the v4 actions cloned into `.github/act-actions/`
+(gitignored). `ACT=true` makes the workflow skip `setup-java` /
+`actions/cache`. `--bind` shares the host worktree with the container, so
+host `gradlew`, `build/`, `reports/`, and `.act-reports/` may change
+during a run. `smoke` / `client` / `matrix` delete `reports/` and
+`.act-reports/` at the start so a stale gate cannot go green.
 
 A gate log that says `No reports found` is **not** a pass when the matrix
 was non-empty. After a smoke/client run, `.act-reports/` must contain a

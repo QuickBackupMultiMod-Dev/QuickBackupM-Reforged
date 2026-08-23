@@ -207,6 +207,8 @@ GitHub Actions 工作流在 `.github/workflows/functional-tests.yml`：
 `.github/workflows/functional-tests.yml`。
 
 前置：Docker Desktop（Linux 引擎）、`winget install nektos.act`。
+winget 装完可能要**新开一个终端**才有 `act` 的 PATH。先跑 `setup`，再跑
+smoke / client / matrix。
 
 ```powershell
 pwsh ./scripts/act-ci.ps1 setup
@@ -214,6 +216,11 @@ pwsh ./scripts/act-ci.ps1 dry-run
 pwsh ./scripts/act-ci.ps1 smoke    # 1.21 Fabric 服务端 boot
 pwsh ./scripts/act-ci.ps1 client   # 1.21 Fabric 客户端 menu（Xvfb）
 ```
+
+`.actrc` 使用 `--network qbm-act` 和 `--bind`。`--bind` 会把宿主机工作区
+挂进容器，因此本机的 `gradlew`、`build/`、`reports/`、`.act-reports/`
+可能被改写。`smoke` / `client` / `matrix` 开始时会删掉 `reports/` 和
+`.act-reports/`，避免旧报告让 gate 假绿。
 
 不要对整个 support range 跑 act：那会下载数 GB 并持续很久。需要缩小范围时，
 GitHub / act 都认同一组 inputs：`versions`、`loaders`、`sides`、`scenarios`。
