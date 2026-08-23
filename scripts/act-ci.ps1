@@ -42,6 +42,9 @@ switch ($Command) {
         docker build -t $Image .github/act
         docker volume create qbm-act-gradle | Out-Null
         docker volume create qbm-act-harness-cache | Out-Null
+        # User-defined network: host mode breaks Gradle daemon TCP on Docker Desktop; builtin bridge rejects aliases.
+        docker network inspect qbm-act *>$null
+        if ($LASTEXITCODE -ne 0) { docker network create qbm-act | Out-Null }
 
         New-Item -ItemType Directory -Force -Path ".github/act-actions" | Out-Null
         foreach ($name in $Actions) {
