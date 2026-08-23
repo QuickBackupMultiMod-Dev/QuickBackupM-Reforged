@@ -61,6 +61,9 @@ jobs:
       branch: ${{ steps.matrix.outputs.branch }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # act --bind shares the host worktree; default clean:true would git-clean gitignored .act-reports.
+          clean: false
 
       - name: Guard — harness must exist on this branch
         id: guard
@@ -131,6 +134,9 @@ jobs:
       matrix: ${{ fromJson(needs.resolve-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # act --bind shares the host worktree; default clean:true would git-clean gitignored .act-reports.
+          clean: false
 
       - name: Set up JDKs
         if: ${{ env.ACT != 'true' }}
@@ -230,7 +236,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: compat-${{ github.ref_name }}-${{ matrix.mc }}-${{ matrix.loader }}
+          name: compat-${{ matrix.mc }}-${{ matrix.loader }}
           path: |
             build/compat-report/
           if-no-files-found: ignore
@@ -243,6 +249,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # act --bind shares the host worktree; default clean:true would git-clean gitignored .act-reports.
+          clean: false
 
       - name: Download all reports
         continue-on-error: true

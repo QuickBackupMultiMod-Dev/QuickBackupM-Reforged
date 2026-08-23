@@ -2,6 +2,7 @@
 --artifact-server-path .act-artifacts
 --container-options --shm-size=2gb -v qbm-act-gradle:/root/.gradle -v qbm-act-harness-cache:/root/.qbm-harness-cache
 --network qbm-act
+--bind
 --pull=false
 --local-repository actions/checkout@v4=.github/act-actions/checkout
 --local-repository actions/setup-java@v4=.github/act-actions/setup-java
