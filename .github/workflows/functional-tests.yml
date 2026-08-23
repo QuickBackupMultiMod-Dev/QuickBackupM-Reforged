@@ -62,8 +62,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # act --bind shares the host worktree; default clean:true would git-clean gitignored .act-reports.
-          clean: false
+          # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
+          clean: ${{ env.ACT != 'true' }}
 
       - name: Guard — harness must exist on this branch
         id: guard
@@ -135,8 +135,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # act --bind shares the host worktree; default clean:true would git-clean gitignored .act-reports.
-          clean: false
+          # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
+          clean: ${{ env.ACT != 'true' }}
 
       - name: Set up JDKs
         if: ${{ env.ACT != 'true' }}
@@ -190,7 +190,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils xauth
+          sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils xauth libopenal1
 
       - name: Default harness cache on GitHub-hosted runners
         if: ${{ env.ACT != 'true' }}
@@ -208,6 +208,8 @@ jobs:
           # Xvfb has no GPU, so make Mesa go straight to its software rasteriser instead of probing for
           # hardware and falling over. Only the client half reads this; the server never opens a context.
           LIBGL_ALWAYS_SOFTWARE: "1"
+          # Headless OpenAL: the client still logs "Sound engine started", which the harness waits for.
+          ALSOFT_DRIVERS: "null"
           QBM_BRANCH: ${{ github.ref_name }}
         run: |
           sed -i 's/\r$//' gradlew
@@ -228,6 +230,7 @@ jobs:
           src=build/compat-report
           dest=".act-reports/${{ matrix.mc }}-${{ matrix.loader }}"
           if [ -d "$src" ]; then
+            rm -rf "$dest"
             mkdir -p "$dest"
             cp -a "$src/." "$dest/"
           fi
@@ -250,8 +253,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # act --bind shares the host worktree; default clean:true would git-clean gitignored .act-reports.
-          clean: false
+          # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
+          clean: ${{ env.ACT != 'true' }}
 
       - name: Download all reports
         continue-on-error: true

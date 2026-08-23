@@ -124,6 +124,7 @@ gradle-*.txt
 .act-artifacts/
 harness-cache/
 .act-reports/
+reports/
 .github/act-actions/
 .github/act/*.tar.gz
 

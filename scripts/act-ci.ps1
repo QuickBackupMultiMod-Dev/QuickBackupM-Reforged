@@ -27,9 +27,24 @@ function Assert-Tool($Name) {
     }
 }
 
+function Ensure-ActNetwork {
+    Assert-Tool docker
+    docker network inspect qbm-act *>$null
+    if ($LASTEXITCODE -ne 0) { docker network create qbm-act | Out-Null }
+}
+
+function Clear-ActHostReports {
+    foreach ($dir in @(".act-reports", "reports")) {
+        if (Test-Path $dir) {
+            Remove-Item -LiteralPath $dir -Recurse -Force
+        }
+    }
+}
+
 function Invoke-Act {
     param([string[]]$ActArgs)
     Assert-Tool act
+    Ensure-ActNetwork
     & act workflow_dispatch -W $Workflow @ActArgs
     if ($LASTEXITCODE -ne 0) { throw "act exited $LASTEXITCODE" }
 }
@@ -43,8 +58,7 @@ switch ($Command) {
         docker volume create qbm-act-gradle | Out-Null
         docker volume create qbm-act-harness-cache | Out-Null
         # User-defined network: host mode breaks Gradle daemon TCP on Docker Desktop; builtin bridge rejects aliases.
-        docker network inspect qbm-act *>$null
-        if ($LASTEXITCODE -ne 0) { docker network create qbm-act | Out-Null }
+        Ensure-ActNetwork
 
         New-Item -ItemType Directory -Force -Path ".github/act-actions" | Out-Null
         foreach ($name in $Actions) {
@@ -75,9 +89,11 @@ python3 --version
         Invoke-Act @("-e", ".github/workflows/act-event.json", "-n")
     }
     "matrix" {
+        Clear-ActHostReports
         Invoke-Act @("-e", ".github/workflows/act-event.json", "--job", "resolve-matrix")
     }
     "smoke" {
+        Clear-ActHostReports
         Invoke-Act @(
             "-e", ".github/workflows/act-event.json",
             "--input", "versions=1.21",
@@ -87,6 +103,7 @@ python3 --version
         )
     }
     "client" {
+        Clear-ActHostReports
         Invoke-Act @(
             "-e", ".github/workflows/act-event-client.json",
             "--input", "versions=1.21",
