@@ -122,6 +122,8 @@ runs/
 .claude/
 gradle-*.txt
 .act-artifacts/
+harness-cache/
+.act-reports/
 .github/act-actions/
 .github/act/*.tar.gz
 

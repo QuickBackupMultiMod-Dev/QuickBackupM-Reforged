@@ -26,6 +26,11 @@ on:
         type: string
         required: false
         default: ""
+      scenarios:
+        description: "Comma-separated scenarios (empty = all). e.g. boot,menu"
+        type: string
+        required: false
+        default: ""
   workflow_call:
     inputs:
       versions:
@@ -37,6 +42,10 @@ on:
         required: false
         default: ""
       sides:
+        type: string
+        required: false
+        default: ""
+      scenarios:
         type: string
         required: false
         default: ""
@@ -193,11 +202,22 @@ jobs:
           MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
           ARGS="-Pqbm.versions=${{ matrix.mc }} -Pqbm.loaders=${{ matrix.loader }}"
           if [ -n "${{ inputs.sides }}" ]; then ARGS="$ARGS -Pqbm.sides=${{ inputs.sides }}"; fi
+          if [ -n "${{ inputs.scenarios }}" ]; then ARGS="$ARGS -Pqbm.scenarios=${{ inputs.scenarios }}"; fi
           # xvfb-run gives the client a virtual framebuffer; the server half ignores it. No window manager
           # is installed, and none is needed: commands reach the client through the mod's stdin channel
           # rather than through a focused window.
           xvfb-run -a --server-args="-screen 0 1280x1024x24" \
             ./gradlew ":${MOD_ID}-harness:functionalTest" $ARGS --no-daemon
+
+      - name: Stage reports for the gate
+        if: ${{ always() }}
+        run: |
+          src=build/compat-report
+          dest=".act-reports/${{ matrix.mc }}-${{ matrix.loader }}"
+          if [ -d "$src" ]; then
+            mkdir -p "$dest"
+            cp -a "$src/." "$dest/"
+          fi
 
       - name: Upload compatibility report and logs
         if: ${{ always() }}
@@ -228,4 +248,9 @@ jobs:
       - name: Aggregate and gate
         env:
           MATRIX: ${{ needs.resolve-matrix.outputs.matrix }}
-        run: python3 .github/workflows/scripts/functional_gate.py reports
+        run: |
+          ROOT=reports
+          if [ "${ACT:-}" = "true" ] && [ -d .act-reports ]; then
+            ROOT=.act-reports
+          fi
+          python3 .github/workflows/scripts/functional_gate.py "$ROOT"

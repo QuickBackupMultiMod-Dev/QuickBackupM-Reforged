@@ -2,7 +2,7 @@
   "inputs": {
     "versions": "1.21",
     "loaders": "fabric",
-    "sides": "server",
-    "scenarios": "boot"
+    "sides": "client",
+    "scenarios": "menu"
   }
 }
