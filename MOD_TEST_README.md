@@ -200,6 +200,24 @@ GitHub Actions 工作流在 `.github/workflows/functional-tests.yml`：
 
 输出 `build/mc-matrix.json`，工作流用它并行运行每个版本。
 
+## 用 act 在本地模拟 GitHub workflow
+
+功能测试 workflow 跑在 `ubuntu-latest` + Xvfb 上，Windows 本机无法等价复现。
+用 nektos/act 在 Docker Linux 引擎里跑同一份
+`.github/workflows/functional-tests.yml`。
+
+前置：Docker Desktop（Linux 引擎）、`winget install nektos.act`。
+
+```powershell
+pwsh ./scripts/act-ci.ps1 setup
+pwsh ./scripts/act-ci.ps1 dry-run
+pwsh ./scripts/act-ci.ps1 smoke    # 1.21 Fabric 服务端 boot
+pwsh ./scripts/act-ci.ps1 client   # 1.21 Fabric 客户端 menu（Xvfb）
+```
+
+不要对整个 support range 跑 act：那会下载数 GB 并持续很久。需要缩小范围时，
+GitHub / act 都认同一组 inputs：`versions`、`loaders`、`sides`、`scenarios`。
+
 ## 故障排查
 
 ### 问题：`No built jar matching -mc1.21.1-fabric-`
