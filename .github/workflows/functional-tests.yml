@@ -186,13 +186,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils xauth
 
+      - name: Default harness cache on GitHub-hosted runners
+        if: ${{ env.ACT != 'true' }}
+        run: echo "QBM_HARNESS_CACHE=${{ github.workspace }}/harness-cache" >> "$GITHUB_ENV"
+
       - name: Point harness cache at the Docker volume (act)
         if: ${{ env.ACT == 'true' }}
         run: echo "QBM_HARNESS_CACHE=/root/.qbm-harness-cache" >> "$GITHUB_ENV"
 
       - name: Run functional tests
         env:
-          QBM_HARNESS_CACHE: ${{ github.workspace }}/harness-cache
           # Marks that a virtual display will be provided, so the client tests attempt to run instead of
           # skipping. The Xvfb wrapper below supplies the actual DISPLAY.
           QBM_HEADLESS_DISPLAY: "1"
