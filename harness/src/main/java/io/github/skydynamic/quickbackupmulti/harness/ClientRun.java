@@ -103,15 +103,16 @@ public final class ClientRun implements AutoCloseable {
         Path clientJar = provisioner.clientJar(mcVersion, versionJson);
         String assetIndexId = provisioner.downloadAssets(versionJson, assetsDir);
 
-        Set<String> classpath = new LinkedHashSet<>();
-        classpath.add(clientJar.toAbsolutePath().toString());
-        for (Path lib : provisioner.vanillaLibraries(versionJson, librariesDir, nativesDir)) {
-            classpath.add(lib.toAbsolutePath().toString());
-        }
+        List<Path> jars = new ArrayList<>();
+        jars.add(clientJar.toAbsolutePath());
+        jars.addAll(provisioner.vanillaLibraries(versionJson, librariesDir, nativesDir));
         // Fabric's profile lists the loader, intermediary mappings and its own dependencies, and names
-        // the client main class that bootstraps mod loading.
+        // the client main class that bootstraps mod loading. Added after vanilla so a later ASM
+        // (the one Knot actually needs) wins when both ship the same group:artifact.
         String profileJson = provisioner.fabricProfileJson(mcVersion);
-        for (Path lib : provisioner.fabricLibraries(profileJson, librariesDir)) {
+        jars.addAll(provisioner.fabricLibraries(profileJson, librariesDir));
+        Set<String> classpath = new LinkedHashSet<>();
+        for (Path lib : LibraryClasspath.dedupe(jars)) {
             classpath.add(lib.toAbsolutePath().toString());
         }
         String mainClass = extract(profileJson, "\"mainClass\"\\s*:\\s*\"([^\"]+)\"",
