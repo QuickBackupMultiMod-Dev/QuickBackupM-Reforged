@@ -31,6 +31,11 @@ on:
         type: string
         required: false
         default: ""
+      target_branch:
+        description: "Release branch to checkout and test (empty = current ref)"
+        type: string
+        required: false
+        default: ""
   workflow_call:
     inputs:
       versions:
@@ -49,6 +54,11 @@ on:
         type: string
         required: false
         default: ""
+      target_branch:
+        type: string
+        required: false
+        default: ""
+        description: "Release branch to checkout and test (empty = current ref)"
 
 jobs:
   # Resolve, from the branch's own gradle.properties + the live Mojang manifest, which MC versions and
@@ -62,6 +72,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # A release gate checks out each published branch; local/dispatch leave this empty.
+          ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.sha }}
           # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
           clean: ${{ env.ACT != 'true' }}
 
@@ -135,6 +147,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # A release gate checks out each published branch; local/dispatch leave this empty.
+          ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.sha }}
           # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
           clean: ${{ env.ACT != 'true' }}
 
@@ -217,7 +231,7 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
           # Headless OpenAL: the client still logs "Sound engine started", which the harness waits for.
           ALSOFT_DRIVERS: "null"
-          QBM_BRANCH: ${{ github.ref_name }}
+          QBM_BRANCH: ${{ inputs.target_branch != '' && inputs.target_branch || github.ref_name }}
         run: |
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
@@ -246,7 +260,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: compat-${{ matrix.mc }}-${{ matrix.loader }}
+          name: compat-${{ inputs.target_branch || github.ref_name }}-${{ matrix.mc }}-${{ matrix.loader }}
           path: |
             build/compat-report/
           if-no-files-found: ignore
@@ -260,6 +274,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # A release gate checks out each published branch; local/dispatch leave this empty.
+          ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.sha }}
           # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
           clean: ${{ env.ACT != 'true' }}
 

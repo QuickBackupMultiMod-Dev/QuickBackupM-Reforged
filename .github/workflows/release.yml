@@ -59,11 +59,18 @@ jobs:
   branch_matrix_prep:
     uses: ./.github/workflows/branch_matrix_prep.yml
 
-  # Gate a real (non-pre) release on the functional tests for the default branch. A pre-release / alpha
-  # is deliberately not gated: it is exactly the channel used to ship something for testing.
+  # Gate a real (non-pre) release on the functional tests for every published branch. A pre-release /
+  # alpha is deliberately not gated: it is exactly the channel used to ship something for testing.
   functional_gate:
     if: ${{ (github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true') }}
+    needs:
+      - branch_matrix_prep
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.branch_matrix_prep.outputs.branch_matrix) }}
     uses: ./.github/workflows/functional-tests.yml
+    with:
+      target_branch: ${{ matrix.branch }}
 
   build_release:
     if: ${{ (github.event_name == 'release' && !github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true') }}
