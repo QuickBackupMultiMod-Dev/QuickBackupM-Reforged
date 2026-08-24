@@ -93,9 +93,7 @@ public class BackupManager {
             QuickbackupmultiReforged.getManager().fullStorage(
                 "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
                 "Full backup",
-                QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile(),
-                fileFilter,
-                folderFilter
+                QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile()
             );
         } else {
             List<StorageInfo> storageInfoList = QuickbackupmultiReforged.getDatabase().getAllStorageInfo();
@@ -111,9 +109,7 @@ public class BackupManager {
                 QuickbackupmultiReforged.getManager().fullStorage(
                     "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
                     "Full backup",
-                    QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile(),
-                    fileFilter,
-                    folderFilter
+                    QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile()
                 );
             }
         }
