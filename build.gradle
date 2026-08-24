@@ -70,7 +70,7 @@ allprojects {
 subprojects {
     // The standalone CLI module is a plain-Java application (no Minecraft / Loom / Architectury).
     // It carries its own build.gradle, so skip all Minecraft-specific wiring for it.
-    if (project.name.endsWith("-cli")) {
+    if (project.name.endsWith("-cli") || project.name.endsWith("-harness")) {
         return
     }
 

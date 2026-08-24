@@ -1,0 +1,11 @@
+-P ubuntu-latest=qbm-act:22.04
+--artifact-server-path .act-artifacts
+--container-options --shm-size=2gb -v qbm-act-gradle:/root/.gradle -v qbm-act-harness-cache:/root/.qbm-harness-cache
+--network qbm-act
+--bind
+--pull=false
+--local-repository actions/checkout@v4=.github/act-actions/checkout
+--local-repository actions/setup-java@v4=.github/act-actions/setup-java
+--local-repository actions/cache@v4=.github/act-actions/cache
+--local-repository actions/upload-artifact@v4=.github/act-actions/upload-artifact
+--local-repository actions/download-artifact@v4=.github/act-actions/download-artifact
