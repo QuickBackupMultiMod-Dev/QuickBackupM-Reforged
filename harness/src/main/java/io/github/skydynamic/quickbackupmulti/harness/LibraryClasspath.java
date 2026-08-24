@@ -37,6 +37,11 @@ public final class LibraryClasspath {
         if (groupDir == null) {
             return null;
         }
-        return groupDir.toString().replace('\\', '/') + "/" + artifactDir.getFileName();
+        String version = versionDir.getFileName().toString();
+        String artifact = artifactDir.getFileName().toString();
+        String file = jar.getFileName().toString();
+        String prefix = artifact + "-" + version;
+        String classifierAndExt = file.startsWith(prefix) ? file.substring(prefix.length()) : file;
+        return groupDir.toString().replace('\\', '/') + "/" + artifact + classifierAndExt;
     }
 }
