@@ -49,6 +49,14 @@ function Invoke-Act {
     if ($LASTEXITCODE -ne 0) { throw "act exited $LASTEXITCODE" }
 }
 
+function Get-MinecraftVersion {
+    $line = Get-Content -LiteralPath "gradle.properties" |
+        Where-Object { $_ -match '^\s*minecraft_version\s*=' } |
+        Select-Object -Last 1
+    if (-not $line) { throw "minecraft_version not found in gradle.properties" }
+    return ($line -split '=', 2)[1].Trim()
+}
+
 switch ($Command) {
     "setup" {
         Assert-Tool docker
@@ -68,17 +76,16 @@ switch ($Command) {
             }
         }
 
-        # Seed the OS-independent Gradle wrapper zip into the Linux volume.
-        # Hash directory name must match Gradle 8.14.5's wrapper (gradle-wrapper.properties).
-        docker run --rm -v qbm-act-gradle:/root/.gradle $Image bash -lc @'
+        # Seed this branch's Gradle wrapper into the Linux volume (hash dir is wrapper-defined).
+        docker run --rm `
+            -v qbm-act-gradle:/root/.gradle `
+            -v "${PWD}:/src" `
+            -w /src `
+            $Image bash -lc @'
 set -euo pipefail
-dest=/root/.gradle/wrapper/dists/gradle-8.14.5-bin/690y85m0j9nfaub7xoiayko8a
-mkdir -p "$dest"
-if [ ! -f "$dest/gradle-8.14.5-bin.zip.ok" ]; then
-  curl -fsSL https://services.gradle.org/distributions/gradle-8.14.5-bin.zip -o "$dest/gradle-8.14.5-bin.zip"
-  unzip -q -o "$dest/gradle-8.14.5-bin.zip" -d "$dest"
-  touch "$dest/gradle-8.14.5-bin.zip.ok"
-fi
+sed -i "s/\r$//" gradlew
+chmod +x gradlew
+./gradlew --version
 java -version
 xvfb-run -a --server-args="-screen 0 1280x1024x24" echo xvfb-ok
 python3 --version
@@ -94,9 +101,10 @@ python3 --version
     }
     "smoke" {
         Clear-ActHostReports
+        $mc = Get-MinecraftVersion
         Invoke-Act @(
             "-e", ".github/workflows/act-event.json",
-            "--input", "versions=1.21",
+            "--input", "versions=$mc",
             "--input", "loaders=fabric",
             "--input", "sides=server",
             "--input", "scenarios=boot"
@@ -104,9 +112,10 @@ python3 --version
     }
     "client" {
         Clear-ActHostReports
+        $mc = Get-MinecraftVersion
         Invoke-Act @(
             "-e", ".github/workflows/act-event-client.json",
-            "--input", "versions=1.21",
+            "--input", "versions=$mc",
             "--input", "loaders=fabric",
             "--input", "sides=client",
             "--input", "scenarios=menu"

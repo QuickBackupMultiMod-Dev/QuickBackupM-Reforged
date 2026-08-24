@@ -119,9 +119,15 @@ tasks.register("functionalTest", Test) {
         showStandardStreams = false
     }
 
-    // The mod jars under test have to exist first, and they only land in the root build/libs after
-    // remapJar has run for each loader.
-    dependsOn ":${rootProject.mod_id}-fabric:remapJar", ":${rootProject.mod_id}-neoforge:remapJar"
+    // The mod jars under test have to exist first. Java 21 branches produce them via remapJar;
+    // 26.x (loom-no-remap) uses jar. Resolved lazily so platform projects are fully evaluated.
+    dependsOn {
+        ["fabric", "neoforge"].collect { loader ->
+            def plat = project(":${rootProject.mod_id}-${loader}")
+            def remap = plat.tasks.findByName("remapJar")
+            remap != null ? remap : plat.tasks.named("jar")
+        }
+    }
 
     // The compatibility report is written by the tests themselves; make it visible either way.
     doLast {

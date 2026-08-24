@@ -160,13 +160,20 @@ jobs:
       - name: Install JDK 21 (act)
         if: ${{ env.ACT == 'true' }}
         run: |
-          if [ ! -x /usr/lib/jvm/java-21-openjdk-amd64/bin/java ]; then
+          JDK21=/usr/lib/jvm/java-21-openjdk-amd64
+          if [ ! -x "$JDK21/bin/java" ]; then
             sudo apt-get update
             sudo apt-get install -y openjdk-21-jdk-headless
           fi
-          echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
-          echo "JAVA${{ matrix.game_java }}_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
-          echo "/usr/lib/jvm/java-21-openjdk-amd64/bin" >> "$GITHUB_PATH"
+          echo "JAVA_HOME=$JDK21" >> "$GITHUB_ENV"
+          echo "$JDK21/bin" >> "$GITHUB_PATH"
+          GAME_JAVA="${{ matrix.game_java }}"
+          CANDIDATES="/usr/lib/jvm/java-${GAME_JAVA}-openjdk-amd64 /usr/lib/jvm/temurin-${GAME_JAVA}-jdk-amd64"
+          HOME_FOR_GAME="$JDK21"
+          for d in $CANDIDATES; do
+            if [ -x "$d/bin/java" ]; then HOME_FOR_GAME="$d"; break; fi
+          done
+          echo "JAVA${GAME_JAVA}_HOME=$HOME_FOR_GAME" >> "$GITHUB_ENV"
           java -version
 
       - name: Cache gradle + harness downloads
