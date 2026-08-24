@@ -20,4 +20,14 @@ class LibraryClasspathTest {
         assertEquals(List.of(lwjgl, asm910), out);
         assertFalse(out.contains(asm93));
     }
+
+    @Test
+    void nativeClassifierIsKeptBesideTheMainJar() {
+        Path main = Path.of("libraries/com/mojang/jtracy/1.0.29/jtracy-1.0.29.jar");
+        Path natives = Path.of("libraries/com/mojang/jtracy/1.0.29/jtracy-1.0.29-natives-windows.jar");
+
+        List<Path> out = LibraryClasspath.dedupe(List.of(main, natives));
+
+        assertEquals(List.of(main, natives), out);
+    }
 }
