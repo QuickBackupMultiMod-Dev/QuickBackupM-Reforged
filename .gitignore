@@ -119,6 +119,13 @@ runs/
 !gradle-wrapper.jar
 /fastSync.ps1
 
+.act-artifacts/
+harness-cache/
+.act-reports/
+reports/
+.github/act-actions/
+.github/act/*.tar.gz
+
 # Eclipse / JDT language server (LSP) artifacts
 .classpath
 .project
