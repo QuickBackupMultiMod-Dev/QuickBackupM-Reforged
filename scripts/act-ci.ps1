@@ -7,10 +7,11 @@
     pwsh ./scripts/act-ci.ps1 matrix
     pwsh ./scripts/act-ci.ps1 smoke
     pwsh ./scripts/act-ci.ps1 client
+    pwsh ./scripts/act-ci.ps1 full
 #>
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet("setup", "dry-run", "matrix", "smoke", "client")]
+    [ValidateSet("setup", "dry-run", "matrix", "smoke", "client", "full")]
     [string]$Command
 )
 
@@ -119,6 +120,16 @@ python3 --version
             "--input", "loaders=fabric",
             "--input", "sides=client",
             "--input", "scenarios=menu"
+        )
+    }
+    "full" {
+        Clear-ActHostReports
+        Invoke-Act @(
+            "-e", ".github/workflows/act-event.json",
+            "--input", "versions=1.21",
+            "--input", "loaders=fabric,neoforge",
+            "--input", "sides=",
+            "--input", "scenarios="
         )
     }
 }

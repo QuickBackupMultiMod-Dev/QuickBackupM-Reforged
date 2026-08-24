@@ -87,24 +87,40 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set up JDK 21
+      - name: Resolve CI Java version
+        id: ci_java
+        if: ${{ steps.guard.outputs.present == 'true' }}
+        run: |
+          JAVA=$(grep -E '^[[:space:]]*ci_java_version[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
+          JAVA=${JAVA:-21}
+          case "$JAVA" in
+            ''|*[!0-9]*) echo "Invalid ci_java_version: $JAVA" >&2; exit 1 ;;
+          esac
+          echo "version=$JAVA" >> "$GITHUB_OUTPUT"
+          echo "Resolved ci_java_version=$JAVA"
+
+      - name: Set up CI JDK
         if: ${{ steps.guard.outputs.present == 'true' && env.ACT != 'true' }}
         uses: actions/setup-java@v4
         with:
-          java-version: "21"
+          java-version: ${{ steps.ci_java.outputs.version }}
           distribution: temurin
 
-      - name: Install JDK 21 (act)
+      - name: Install CI JDK (act)
         if: ${{ steps.guard.outputs.present == 'true' && env.ACT == 'true' }}
         run: |
-          # setup-java downloads Temurin from GitHub; the Docker Linux VM often cannot reach it.
-          # A local image built from .github/act/Dockerfile already has this JDK.
-          if [ ! -x /usr/lib/jvm/java-21-openjdk-amd64/bin/java ]; then
+          CI_JAVA="${{ steps.ci_java.outputs.version }}"
+          JDK="/usr/lib/jvm/java-${CI_JAVA}-openjdk-amd64"
+          if [ ! -x "$JDK/bin/java" ]; then
             sudo apt-get update
-            sudo apt-get install -y openjdk-21-jdk-headless
+            sudo apt-get install -y "openjdk-${CI_JAVA}-jdk-headless"
           fi
-          echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
-          echo "/usr/lib/jvm/java-21-openjdk-amd64/bin" >> "$GITHUB_PATH"
+          if [ ! -x "$JDK/bin/java" ]; then
+            echo "Unable to install Java $CI_JAVA at $JDK" >&2
+            exit 1
+          fi
+          echo "JAVA_HOME=$JDK" >> "$GITHUB_ENV"
+          echo "$JDK/bin" >> "$GITHUB_PATH"
           java -version
 
       - name: Cache gradle files
@@ -126,7 +142,15 @@ jobs:
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
           MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
-          ./gradlew ":${MOD_ID}-harness:printMcMatrix" --no-daemon -q || true
+          ./gradlew ":${MOD_ID}-harness:printMcMatrix" --no-daemon -q
+          if [ ! -s build/mc-matrix.json ]; then
+            echo "Matrix resolver did not produce build/mc-matrix.json" >&2
+            exit 1
+          fi
+          if ! python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' build/mc-matrix.json; then
+            echo "Matrix resolver produced invalid JSON: build/mc-matrix.json" >&2
+            exit 1
+          fi
           cat build/mc-matrix.json
           # Turn the resolved version/loader lists into a GitHub Actions include matrix, respecting the
           # optional dispatch filters.
@@ -263,6 +287,8 @@ jobs:
           name: compat-${{ inputs.target_branch || github.ref_name }}-${{ matrix.mc }}-${{ matrix.loader }}
           path: |
             build/compat-report/
+            build/run/
+            harness-cache/
           if-no-files-found: ignore
 
   # Aggregate the per-(mc,loader) reports into one, and fail the workflow if any real (non-marked)
@@ -288,6 +314,7 @@ jobs:
           merge-multiple: false
 
       - name: Aggregate and gate
+        if: ${{ needs.resolve-matrix.result == 'success' }}
         env:
           MATRIX: ${{ needs.resolve-matrix.outputs.matrix }}
         run: |
@@ -296,3 +323,9 @@ jobs:
             ROOT=.act-reports
           fi
           python3 .github/workflows/scripts/functional_gate.py "$ROOT"
+
+      - name: Fail when matrix resolution failed
+        if: ${{ needs.resolve-matrix.result != 'success' }}
+        run: |
+          echo "resolve-matrix failed; refusing to treat the release harness as an empty matrix." >&2
+          exit 1
