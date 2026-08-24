@@ -1,0 +1,282 @@
+name: Functional tests
+
+# Boots a real Minecraft server (and, headlessly, a client) for every release in the current branch's
+# declared support range, and exercises the mod end to end: /qb make, list, restore, and the #54/#55/#56
+# regressions. This is heavy — it downloads gigabytes and takes minutes per version — so it never runs on
+# a plain push. It runs on manual dispatch, and as a required gate before a (non-pre) release.
+#
+# Fast unit tests are NOT here: those run on every push in build.yml. This workflow is only the slow,
+# real-game half.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "Comma-separated MC versions to test (empty = whole support range)"
+        type: string
+        required: false
+        default: ""
+      loaders:
+        description: "Comma-separated loaders (empty = fabric,neoforge)"
+        type: string
+        required: false
+        default: ""
+      sides:
+        description: "Comma-separated sides: server, client (empty = both)"
+        type: string
+        required: false
+        default: ""
+      scenarios:
+        description: "Comma-separated scenarios (empty = all). e.g. boot,menu"
+        type: string
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      versions:
+        type: string
+        required: false
+        default: ""
+      loaders:
+        type: string
+        required: false
+        default: ""
+      sides:
+        type: string
+        required: false
+        default: ""
+      scenarios:
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  # Resolve, from the branch's own gradle.properties + the live Mojang manifest, which MC versions and
+  # loaders this run should cover. printMcMatrix is the same resolver the tests use, so the CI matrix and
+  # the in-test matrix can never disagree.
+  resolve-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      branch: ${{ steps.matrix.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
+          clean: ${{ env.ACT != 'true' }}
+
+      - name: Guard — harness must exist on this branch
+        id: guard
+        run: |
+          if [ ! -d harness ]; then
+            echo "This branch has no harness/ module; nothing to test."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 21
+        if: ${{ steps.guard.outputs.present == 'true' && env.ACT != 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Install JDK 21 (act)
+        if: ${{ steps.guard.outputs.present == 'true' && env.ACT == 'true' }}
+        run: |
+          # setup-java downloads Temurin from GitHub; the Docker Linux VM often cannot reach it.
+          # A local image built from .github/act/Dockerfile already has this JDK.
+          if [ ! -x /usr/lib/jvm/java-21-openjdk-amd64/bin/java ]; then
+            sudo apt-get update
+            sudo apt-get install -y openjdk-21-jdk-headless
+          fi
+          echo "JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> "$GITHUB_ENV"
+          echo "/usr/lib/jvm/java-21-openjdk-amd64/bin" >> "$GITHUB_PATH"
+          java -version
+
+      - name: Cache gradle files
+        if: ${{ steps.guard.outputs.present == 'true' && env.ACT != 'true' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ github.ref_name }}-${{ hashFiles('*.gradle', '*/*.gradle', 'gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ github.ref_name }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Resolve matrix
+        id: matrix
+        if: ${{ steps.guard.outputs.present == 'true' }}
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+          MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
+          ./gradlew ":${MOD_ID}-harness:printMcMatrix" --no-daemon -q || true
+          cat build/mc-matrix.json
+          # Turn the resolved version/loader lists into a GitHub Actions include matrix, respecting the
+          # optional dispatch filters.
+          python3 .github/workflows/scripts/functional_matrix.py \
+            --matrix build/mc-matrix.json \
+            --versions "${{ inputs.versions }}" \
+            --loaders "${{ inputs.loaders }}"
+
+  test:
+    needs: resolve-matrix
+    # An empty matrix (no harness, or filtered to nothing) skips the whole job cleanly.
+    if: ${{ needs.resolve-matrix.outputs.matrix != '' && needs.resolve-matrix.outputs.matrix != '{"include":[]}' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.resolve-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
+          clean: ${{ env.ACT != 'true' }}
+
+      - name: Set up JDKs
+        if: ${{ env.ACT != 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          # The game may need a newer JDK than the harness. Install both and expose the game one via
+          # JAVA<N>_HOME, which HarnessConfig.javaExecutable looks up.
+          java-version: |
+            21
+            ${{ matrix.game_java }}
+          distribution: temurin
+
+      - name: Expose game JDK
+        if: ${{ env.ACT != 'true' }}
+        run: |
+          # setup-java writes JAVA_HOME_<major>_X64; alias it to the JAVA<major>_HOME the harness expects.
+          GAME_JAVA="${{ matrix.game_java }}"
+          VAR="JAVA_HOME_${GAME_JAVA}_X64"
+          echo "JAVA${GAME_JAVA}_HOME=${!VAR}" >> "$GITHUB_ENV"
+
+      - name: Install JDK 21 (act)
+        if: ${{ env.ACT == 'true' }}
+        run: |
+          JDK21=/usr/lib/jvm/java-21-openjdk-amd64
+          if [ ! -x "$JDK21/bin/java" ]; then
+            sudo apt-get update
+            sudo apt-get install -y openjdk-21-jdk-headless
+          fi
+          echo "JAVA_HOME=$JDK21" >> "$GITHUB_ENV"
+          echo "$JDK21/bin" >> "$GITHUB_PATH"
+          GAME_JAVA="${{ matrix.game_java }}"
+          CANDIDATES="/usr/lib/jvm/java-${GAME_JAVA}-openjdk-amd64 /usr/lib/jvm/temurin-${GAME_JAVA}-jdk-amd64"
+          HOME_FOR_GAME="$JDK21"
+          for d in $CANDIDATES; do
+            if [ -x "$d/bin/java" ]; then HOME_FOR_GAME="$d"; break; fi
+          done
+          echo "JAVA${GAME_JAVA}_HOME=$HOME_FOR_GAME" >> "$GITHUB_ENV"
+          java -version
+
+      - name: Cache gradle + harness downloads
+        if: ${{ env.ACT != 'true' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            harness-cache
+          # Downloads are version-keyed and immutable, so a per-mc key both isolates and maximises reuse.
+          key: ${{ runner.os }}-qbm-harness-${{ github.ref_name }}-${{ matrix.mc }}
+          restore-keys: |
+            ${{ runner.os }}-qbm-harness-${{ github.ref_name }}-
+            ${{ runner.os }}-qbm-harness-
+
+      - name: Install headless display deps
+        run: |
+          if command -v xvfb-run >/dev/null 2>&1; then
+            echo "xvfb already present"
+            exit 0
+          fi
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils xauth libopenal1
+
+      - name: Default harness cache on GitHub-hosted runners
+        if: ${{ env.ACT != 'true' }}
+        run: echo "QBM_HARNESS_CACHE=${{ github.workspace }}/harness-cache" >> "$GITHUB_ENV"
+
+      - name: Point harness cache at the Docker volume (act)
+        if: ${{ env.ACT == 'true' }}
+        run: echo "QBM_HARNESS_CACHE=/root/.qbm-harness-cache" >> "$GITHUB_ENV"
+
+      - name: Run functional tests
+        env:
+          # Marks that a virtual display will be provided, so the client tests attempt to run instead of
+          # skipping. The Xvfb wrapper below supplies the actual DISPLAY.
+          QBM_HEADLESS_DISPLAY: "1"
+          # Xvfb has no GPU, so make Mesa go straight to its software rasteriser instead of probing for
+          # hardware and falling over. Only the client half reads this; the server never opens a context.
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          # Headless OpenAL: the client still logs "Sound engine started", which the harness waits for.
+          ALSOFT_DRIVERS: "null"
+          QBM_BRANCH: ${{ github.ref_name }}
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+          MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
+          ARGS="-Pqbm.versions=${{ matrix.mc }} -Pqbm.loaders=${{ matrix.loader }}"
+          if [ -n "${{ inputs.sides }}" ]; then ARGS="$ARGS -Pqbm.sides=${{ inputs.sides }}"; fi
+          if [ -n "${{ inputs.scenarios }}" ]; then ARGS="$ARGS -Pqbm.scenarios=${{ inputs.scenarios }}"; fi
+          # xvfb-run gives the client a virtual framebuffer; the server half ignores it. No window manager
+          # is installed, and none is needed: commands reach the client through the mod's stdin channel
+          # rather than through a focused window.
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
+            ./gradlew ":${MOD_ID}-harness:functionalTest" $ARGS --no-daemon
+
+      - name: Stage reports for the gate
+        if: ${{ always() }}
+        run: |
+          src=build/compat-report
+          dest=".act-reports/${{ matrix.mc }}-${{ matrix.loader }}"
+          if [ -d "$src" ]; then
+            rm -rf "$dest"
+            mkdir -p "$dest"
+            cp -a "$src/." "$dest/"
+          fi
+
+      - name: Upload compatibility report and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: compat-${{ matrix.mc }}-${{ matrix.loader }}
+          path: |
+            build/compat-report/
+          if-no-files-found: ignore
+
+  # Aggregate the per-(mc,loader) reports into one, and fail the workflow if any real (non-marked)
+  # incompatibility was found. This is the job a release gate waits on.
+  gate:
+    needs: [resolve-matrix, test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GitHub-hosted stays default-clean. act --bind shares the host worktree, so skip git-clean.
+          clean: ${{ env.ACT != 'true' }}
+
+      - name: Download all reports
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: compat-*
+          path: reports
+          merge-multiple: false
+
+      - name: Aggregate and gate
+        env:
+          MATRIX: ${{ needs.resolve-matrix.outputs.matrix }}
+        run: |
+          ROOT=reports
+          if [ "${ACT:-}" = "true" ] && [ -d .act-reports ]; then
+            ROOT=.act-reports
+          fi
+          python3 .github/workflows/scripts/functional_gate.py "$ROOT"

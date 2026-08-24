@@ -1,0 +1,159 @@
+// The test harness is a plain-Java JUnit project: it drives an already-built, remapped mod jar in a
+// real server/client process out of band, so it must NOT have Loom, Architectury or a Minecraft
+// dependency of its own (the root build.gradle skips this module for exactly that reason). Everything
+// it needs about the game comes from downloaded artifacts at run time.
+plugins {
+    id "java"
+}
+
+base {
+    archivesName = "${rootProject.archives_name}-harness"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "com.h2database:h2:2.2.224"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    // Without this Gradle 8.12 fails the test task with "Could not find junit-platform-launcher".
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+// ---------------------------------------------------------------------------
+// Version matrix
+// ---------------------------------------------------------------------------
+
+// Which Minecraft releases this branch claims to support, resolved from
+// `minecraft_supported_versions` and the Mojang manifest. Printing it as JSON lets the CI workflow
+// build its matrix from the same code the tests use, so the two can never disagree.
+def matrixSourceSet = sourceSets.main
+
+tasks.register("printMcMatrix", JavaExec) {
+    group = "verification"
+    description = "Prints the (minecraft, loader) test matrix for this branch as JSON."
+    classpath = matrixSourceSet.runtimeClasspath
+    mainClass = "io.github.skydynamic.quickbackupmulti.harness.MatrixMain"
+    // Written to a file as well as stdout: GitHub Actions reads the file, humans read the console.
+    args rootProject.file("build/mc-matrix.json").absolutePath
+    systemProperty "qbm.repoRoot", rootProject.projectDir.absolutePath
+    systemProperty "qbm.cacheDir", harnessCacheDir().absolutePath
+    // Always re-resolve; the manifest changes whenever Mojang ships a release.
+    outputs.upToDateWhen { false }
+}
+
+// ---------------------------------------------------------------------------
+// Functional tests
+// ---------------------------------------------------------------------------
+
+// `test` stays fast and offline: pure unit tests over the range/report logic, safe on every push.
+tasks.named("test").configure {
+    useJUnitPlatform {
+        excludeTags "functional"
+    }
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+// `functionalTest` boots real servers and clients. It downloads gigabytes on a cold cache and takes
+// minutes per version, so it is never wired into `check` — CI runs it on manual dispatch and before a
+// release, per the matrix workflow.
+tasks.register("functionalTest", Test) {
+    group = "verification"
+    description = "Boots a real Minecraft server/client per supported version and exercises the mod."
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags "functional"
+    }
+
+    // One version at a time: each scenario owns a whole server process and several GB of heap.
+    maxParallelForks = 1
+    // A cold cache plus a client run can legitimately take a long while.
+    timeout = java.time.Duration.ofHours(3)
+
+    systemProperty "qbm.repoRoot", rootProject.projectDir.absolutePath
+    systemProperty "qbm.cacheDir", harnessCacheDir().absolutePath
+    systemProperty "qbm.workDir", project.layout.buildDirectory.dir("run").get().asFile.absolutePath
+    systemProperty "qbm.reportDir", rootProject.file("build/compat-report").absolutePath
+    systemProperty "qbm.branch", providers.gradleProperty("qbm.branch")
+        .orElse(providers.environmentVariable("QBM_BRANCH"))
+        .getOrElse(rootProject.minecraft_version)
+
+    // Narrow the run without editing code: -Pqbm.versions=1.21,1.21.3 -Pqbm.loaders=fabric
+    forProperty(it, "qbm.versions")
+    forProperty(it, "qbm.loaders")
+    forProperty(it, "qbm.sides")
+    forProperty(it, "qbm.scenarios")
+    // Keeps each scenario's run directory after it finishes instead of deleting it, for debugging a
+    // failure by hand: -Pqbm.keepRunDirs=true
+    forProperty(it, "qbm.keepRunDirs")
+    // Forces the Robot keystroke fallback instead of the stdin channel. Local-only: a bare Xvfb
+    // has no window manager, so this cannot work in CI. -Pqbm.forceRobot=true
+    forProperty(it, "qbm.forceRobot")
+
+    // Clients need a real (or virtual) display; on a headless runner the workflow supplies one and
+    // sets this so the test can fail with a clear message rather than a Mesa/GLFW stack trace.
+    systemProperty "qbm.displayAvailable", providers.environmentVariable("DISPLAY")
+        .map { !it.isBlank() }
+        .orElse(providers.environmentVariable("QBM_HEADLESS_DISPLAY").map { !it.isBlank() })
+        .orElse(!org.gradle.internal.os.OperatingSystem.current().isLinux())
+        .get()
+        .toString()
+
+    testLogging {
+        events "started", "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+
+    // The mod jars under test have to exist first. Java 21 branches produce them via remapJar;
+    // 26.x (loom-no-remap) uses jar. Resolved lazily so platform projects are fully evaluated.
+    dependsOn {
+        ["fabric", "neoforge"].collect { loader ->
+            def plat = project(":${rootProject.mod_id}-${loader}")
+            def remap = plat.tasks.findByName("remapJar")
+            remap != null ? remap : plat.tasks.named("jar")
+        }
+    }
+
+    // The compatibility report is written by the tests themselves; make it visible either way.
+    doLast {
+        def report = rootProject.file("build/compat-report/compatibility.md")
+        if (report.exists()) {
+            logger.lifecycle("Compatibility report: ${report.absolutePath}")
+        }
+    }
+}
+
+// Passes -Pqbm.foo=... through to a Test task as a system property, leaving it unset when absent so
+// the test can tell "not filtered" from "filtered to nothing".
+static void forProperty(Test task, String name) {
+    def value = task.project.providers.gradleProperty(name).orNull
+    if (value != null) {
+        task.systemProperty(name, value)
+    }
+}
+
+// Downloaded servers, clients, assets and loader installers are large and version-keyed, so they live
+// outside the build directory: a `clean` must not throw away 10 GB that is still perfectly valid.
+// CI overrides this to a path it can cache between runs.
+File harnessCacheDir() {
+    def override = System.getenv("QBM_HARNESS_CACHE")
+    if (override != null && !override.isBlank()) {
+        return new File(override)
+    }
+    return new File(rootProject.file(".gradle"), "qbm-harness-cache")
+}
