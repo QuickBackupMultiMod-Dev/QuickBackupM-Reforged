@@ -46,7 +46,7 @@ function Invoke-Act {
     param([string[]]$ActArgs)
     Assert-Tool act
     Ensure-ActNetwork
-    & act workflow_dispatch -W $Workflow @ActArgs
+    & act workflow_dispatch -W $Workflow --env ACT=true @ActArgs
     if ($LASTEXITCODE -ne 0) { throw "act exited $LASTEXITCODE" }
 }
 
@@ -124,12 +124,13 @@ python3 --version
     }
     "full" {
         Clear-ActHostReports
-        Invoke-Act @(
-            "-e", ".github/workflows/act-event.json",
-            "--input", "versions=1.21",
-            "--input", "loaders=fabric,neoforge",
-            "--input", "sides=",
-            "--input", "scenarios="
-        )
+        $eventPath = Join-Path $PWD ".act-event-full.json"
+        @{ inputs = @{ versions = "1.21"; loaders = "fabric,neoforge"; sides = ""; scenarios = "" } } |
+            ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $eventPath -Encoding utf8
+        try {
+            Invoke-Act @("-e", $eventPath)
+        } finally {
+            Remove-Item -LiteralPath $eventPath -ErrorAction SilentlyContinue
+        }
     }
 }

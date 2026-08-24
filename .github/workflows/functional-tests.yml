@@ -71,6 +71,7 @@ jobs:
       branch: ${{ steps.matrix.outputs.branch }}
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.ACT != 'true' }}
         with:
           # A release gate checks out each published branch; local/dispatch leave this empty.
           ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.sha }}
@@ -139,10 +140,13 @@ jobs:
         id: matrix
         if: ${{ steps.guard.outputs.present == 'true' }}
         run: |
-          sed -i 's/\r$//' gradlew
-          chmod +x gradlew
+          GRADLEW=".act-gradlew-resolve"
+          trap 'rm -f "$GRADLEW"' EXIT
+          cp -L gradlew "$GRADLEW"
+          sed -i 's/\r$//' "$GRADLEW"
+          chmod +x "$GRADLEW"
           MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
-          ./gradlew ":${MOD_ID}-harness:printMcMatrix" --no-daemon -q
+          "./$GRADLEW" ":${MOD_ID}-harness:printMcMatrix" --no-daemon -q
           if [ ! -s build/mc-matrix.json ]; then
             echo "Matrix resolver did not produce build/mc-matrix.json" >&2
             exit 1
@@ -167,9 +171,12 @@ jobs:
     continue-on-error: true
     strategy:
       fail-fast: false
+      # act --bind runs matrix shards in one shared worktree; serialize them to avoid Gradle cache races.
+      max-parallel: 1
       matrix: ${{ fromJson(needs.resolve-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.ACT != 'true' }}
         with:
           # A release gate checks out each published branch; local/dispatch leave this empty.
           ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.sha }}
@@ -212,6 +219,8 @@ jobs:
             if [ -x "$d/bin/java" ]; then HOME_FOR_GAME="$d"; break; fi
           done
           echo "JAVA${GAME_JAVA}_HOME=$HOME_FOR_GAME" >> "$GITHUB_ENV"
+          # Matrix shards share the host-mounted Gradle volume under act; isolate journals to avoid lock contention.
+          echo "GRADLE_USER_HOME=/tmp/qbm-gradle-${{ matrix.loader }}" >> "$GITHUB_ENV"
           java -version
 
       - name: Cache gradle + harness downloads
@@ -257,8 +266,11 @@ jobs:
           ALSOFT_DRIVERS: "null"
           QBM_BRANCH: ${{ inputs.target_branch != '' && inputs.target_branch || github.ref_name }}
         run: |
-          sed -i 's/\r$//' gradlew
-          chmod +x gradlew
+          GRADLEW=".act-gradlew-${{ matrix.loader }}"
+          trap 'rm -f "$GRADLEW"' EXIT
+          cp -L gradlew "$GRADLEW"
+          sed -i 's/\r$//' "$GRADLEW"
+          chmod +x "$GRADLEW"
           MOD_ID=$(grep -E '^[[:space:]]*mod_id[[:space:]]*=' gradle.properties | tail -1 | cut -d= -f2- | tr -d ' \r')
           ARGS="-Pqbm.versions=${{ matrix.mc }} -Pqbm.loaders=${{ matrix.loader }}"
           if [ -n "${{ inputs.sides }}" ]; then ARGS="$ARGS -Pqbm.sides=${{ inputs.sides }}"; fi
@@ -267,7 +279,7 @@ jobs:
           # is installed, and none is needed: commands reach the client through the mod's stdin channel
           # rather than through a focused window.
           xvfb-run -a --server-args="-screen 0 1280x1024x24" \
-            ./gradlew ":${MOD_ID}-harness:functionalTest" $ARGS --no-daemon
+            "./$GRADLEW" ":${MOD_ID}-harness:functionalTest" $ARGS --no-daemon
 
       - name: Stage reports for the gate
         if: ${{ always() }}
@@ -299,6 +311,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.ACT != 'true' }}
         with:
           # A release gate checks out each published branch; local/dispatch leave this empty.
           ref: ${{ inputs.target_branch != '' && inputs.target_branch || github.sha }}
