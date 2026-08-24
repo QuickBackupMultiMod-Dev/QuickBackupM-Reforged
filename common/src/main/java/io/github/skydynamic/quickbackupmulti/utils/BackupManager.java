@@ -90,7 +90,9 @@ public class BackupManager {
         QuickbackupmultiReforged.getManager().fullStorage(
             name,
             "Full backup",
-            QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile()
+            QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile(),
+            fileFilter,
+            folderFilter
         );
     }
 
