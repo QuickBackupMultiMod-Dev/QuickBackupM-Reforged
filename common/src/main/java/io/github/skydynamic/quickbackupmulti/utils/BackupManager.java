@@ -99,6 +99,17 @@ public class BackupManager {
         return -1;
     }
 
+    private static void storeFullBackup() {
+        String name = FullBackupNames.of(
+            QuickbackupmultiReforged.getModContainer().getLevelId(),
+            System.currentTimeMillis());
+        QuickbackupmultiReforged.getManager().fullStorage(
+            name,
+            "Full backup",
+            QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile()
+        );
+    }
+
     private static void makeFullBackup() {
         if (QuickbackupmultiReforged.getModConfig().getFullBackupInterval() == -1) {
             return;
@@ -106,11 +117,7 @@ public class BackupManager {
 
         if (!getBackupPath().resolve("full").toFile().exists()) {
             logger.info("Do not have a full backup, make a full backup for future use...");
-            QuickbackupmultiReforged.getManager().fullStorage(
-                "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
-                "Full backup",
-                QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile()
-            );
+            storeFullBackup();
         } else {
             List<StorageInfo> storageInfoList = QuickbackupmultiReforged.getDatabase().getAllStorageInfo();
             List<StorageInfo> incrementalBackups = storageInfoList.stream().filter(StorageInfo::getUseIncrementalStorage).toList();
@@ -122,11 +129,7 @@ public class BackupManager {
                 // backup was picked as "oldest" on every later run and the rotation never advanced.
                 pruneFullBackups(fullBackups, QuickbackupmultiReforged.getModConfig().getSaveFullBackupCount() - 1);
                 logger.info("Make a full backup for future use...");
-                QuickbackupmultiReforged.getManager().fullStorage(
-                    "FullBackup-" + (QuickbackupmultiReforged.getModContainer().getLevelId().isEmpty() ? "Server" : QuickbackupmultiReforged.getModContainer().getLevelId()),
-                    "Full backup",
-                    QuickbackupmultiReforged.getModContainer().getCurrentSavePath().toFile()
-                );
+                storeFullBackup();
             }
         }
     }
@@ -271,6 +274,8 @@ public class BackupManager {
                 if (!aborted) {
                     makeFullBackup();
                 }
+            } catch (Exception e) {
+                logger.error("Make full backup failed", e);
             } finally {
                 backupInProgress.set(false);
             }
