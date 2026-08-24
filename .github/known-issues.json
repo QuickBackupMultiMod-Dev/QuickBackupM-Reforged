@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Known-broken (version, loader, side, scenario) combinations, used by the functional test harness",
+    "to mark expected failures without turning CI red. See harness/src/main/java/.../KnownIssues.java.",
+    "",
+    "Every entry MUST have: branch, reason, issue. Any of mc/loader/side/scenario may be omitted, which",
+    "means '*' (the whole row of the matrix). A marked combination that FAILS is recorded as a known",
+    "failure and the build stays green; a marked combination that PASSES fails the build with a 'stale",
+    "marking, please remove' message, so a marking can never outlive the bug it describes.",
+    "",
+    "Keep this array empty until a real, tracked incompatibility is found: an empty file means 'nothing",
+    "is known to be broken', which is the correct starting state for branch 1.21.11."
+  ],
+  "issues": []
+}
