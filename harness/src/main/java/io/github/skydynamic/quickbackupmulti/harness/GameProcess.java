@@ -126,6 +126,62 @@ public final class GameProcess implements AutoCloseable {
             () -> "saw it " + linesMatching(pattern).size() + " time(s)");
     }
 
+    /**
+     * Blocks until {@code needle} has appeared at least {@code count} times, even if the process this
+     * handle refers to has already exited.
+     *
+     * <p>A self-restart deliberately ends one process and continues on a replacement that inherits the
+     * same console, so the marker proving the replacement booted arrives <em>after</em> this handle's
+     * process died. Every other wait treats exit as fatal, which is right everywhere else.
+     */
+    public void awaitOccurrencesAfterExit(String needle, int count, Duration timeout)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (occurrences(needle) < count) {
+            if (System.nanoTime() > deadline) {
+                throw new HarnessException("Timed out after " + timeout.toSeconds() + "s waiting for "
+                    + count + "x a log line containing " + quote(needle) + ", saw " + occurrences(needle)
+                    + logContext());
+            }
+            Thread.sleep(200);
+        }
+    }
+
+    /** Same as {@link #awaitOccurrencesAfterExit(String, int, Duration)}, for a pattern. */
+    public void awaitOccurrencesAfterExit(Pattern pattern, int count, Duration timeout)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (linesMatching(pattern).size() < count) {
+            if (System.nanoTime() > deadline) {
+                throw new HarnessException("Timed out after " + timeout.toSeconds() + "s waiting for "
+                    + count + "x a log line matching /" + pattern.pattern() + "/, saw "
+                    + linesMatching(pattern).size() + logContext());
+            }
+            Thread.sleep(200);
+        }
+    }
+
+    /**
+     * Waits until the given process id is gone.
+     *
+     * <p>Used for the replacement a self-restart leaves behind: it is not this handle's process, so its
+     * exit has to be observed through the OS rather than through {@code Process#waitFor}.
+     */
+    public static boolean awaitProcessGone(long pid, Duration timeout) throws InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() < deadline) {
+            if (isGone(pid)) {
+                return true;
+            }
+            Thread.sleep(200);
+        }
+        return isGone(pid);
+    }
+
+    private static boolean isGone(long pid) {
+        return ProcessHandle.of(pid).map(handle -> !handle.isAlive()).orElse(true);
+    }
+
     /** How many captured lines contain {@code needle}. */
     public int occurrences(String needle) {
         int n = 0;

@@ -11,4 +11,6 @@ public class ScheduleBackupConfig extends ScheduleConfig {
     public boolean requireOnlinePlayers = false;
     public boolean requireOnlinePlayersIgnoreCarpetFakePlayer = true;
     public List<String> requireOnlinePlayersBlacklist = List.of();
+    /** Broadcast the start/finish of every scheduled backup in chat, to every online player. */
+    public boolean notifyPlayers = false;
 }
