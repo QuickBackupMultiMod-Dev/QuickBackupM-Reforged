@@ -13,6 +13,8 @@ This is the root JSON object in the configuration file
   "ignoredFolders": [],
   "lang": "zh_cn",
   "autoRestartMode": "DEFAULT",
+  "relaunchCommand": "",
+  "restoreCountdownSeconds": 10,
   "clientAutoReJoinWorld": true,
   "storagePath": "./QuickBackupMulti",
   "cacheDatabase": false,
@@ -44,9 +46,42 @@ Language
 - Default value: `zh_cn`
 
 #### **autoRestartMode**
-Automatic restart mode (server only, client invalid)
+How the server is brought back after a rollback (server only, ignored on the client)
+
+| Value | Behaviour |
+| --- | --- |
+| `DISABLE` | Do not restart; the process exits once the restore is done |
+| `DEFAULT` | Exactly the same as `SELF_RESTART` (kept for old configs) |
+| `SELF_RESTART` | The mod launches a new process with the command line it was started with, then exits — no panel, wrapper script or service manager needed |
+| `MCSM` | Exit with code `1` and let an external supervisor (MCSManager and similar) restart the server |
+
 - Type: `string`
 - Default value: `DEFAULT`
+
+> [!IMPORTANT]
+> `DEFAULT` and `SELF_RESTART` start a new process themselves. If your launcher or panel is **already** configured to restart the server when the process exits, use `MCSM` instead — otherwise two servers will end up running at once.
+>
+> Restarting "in place" is gone on purpose: the old implementation called `runServer()` again on the same `MinecraftServer`, whose world-generation registries had already been modified by the previous boot. On Minecraft 26.x that fails immediately with `IllegalStateException: Dimensions in this dynamic registries instance have already been modified` (issue [#61](https://github.com/QuickBackupMultiMod-Dev/QuickBackupM-Reforged/issues/61)), and the loader bootstrap (Fabric's `Knot`, NeoForge's `FMLLoader`) only runs once per JVM anyway.
+
+> Compatibility: aliases such as `NONE` written by older versions are read as `DISABLE`.
+
+#### **relaunchCommand**
+The command line used by `SELF_RESTART` / `DEFAULT` to start the replacement process. Empty means "derive it from the current process", which is what you want in almost every case.
+
+Only fill this in when the derived command is wrong — a wrapper script, a container entrypoint, or a panel that rewrites the launch arguments. The string is split on whitespace, and double quotes group a path containing spaces.
+
+```json
+"relaunchCommand": "java -Xmx4G -jar server.jar nogui"
+```
+- Type: `string`
+- Default value: `""`
+
+#### **restoreCountdownSeconds**
+How many seconds the confirmation countdown lasts after `/qb confirm` (server only)
+
+`0` restores immediately with no chance to cancel; values above 3600 are clamped
+- Type: `int`
+- Default value: `10`
 
 #### **clientAutoReJoinWorld**
 Whether to automatically join the world after rollback is completed (client only, server invalid)
@@ -85,7 +120,8 @@ This function will automatically create backups for the server on a regular basi
   "resetTimerOnBackup": true,
   "requireOnlinePlayers": false,
   "requireOnlinePlayersIgnoreCarpetFakePlayer": true,
-  "requireOnlinePlayersBlacklist": []
+  "requireOnlinePlayersBlacklist": [],
+  "notifyPlayers": false
 }
 ```
 
@@ -118,6 +154,13 @@ Configuration example:
     "Steve"    // 匹配 "Steve" 这个玩家名
 ]
 ```
+
+#### **notifyPlayers**
+Whether the start, completion and failure of a scheduled backup are broadcast to every online player
+
+Scheduled backups run while players are on the server and can cause a short stutter; with this enabled they know what it was
+- Type: `bool`
+- Default value: `false`
 
 ---
 
@@ -163,6 +206,8 @@ Like MCDR's [Prime Backup](https://github.com/TISUnion/PrimeBackup), QuickBackup
 #### **maxAmount**
 Defines the maximum number of backups to retain, e.g. 10 means to retain the latest 10 backups at most
 
+This cap applies **after** the PBS options above: if `last`..`year` selected 30 backups and `maxAmount` is 10, only the newest 10 are kept, the other 20 are still deleted, and a warning is logged. Set it to 0 when you use long-term options such as `month` / `year`
+
 Setting to 0 means no limit
 - Type: `int`
 - Default value: `10`
@@ -170,7 +215,7 @@ Setting to 0 means no limit
 #### **maxLifeTime**
 Defines the maximum retention time for all backups. Backups exceeding the given time will be cleaned up
 
-Setting to 0s means no time limit
+Setting to 0 means no time limit (any duration that parses to zero, e.g. `0s` or `0m`)
 - Type: [`Duration`](#Duration)
 
 ### **last, hour, day, week, month, year**
@@ -182,6 +227,12 @@ See [Prune Simulator](https://pbs.proxmox.com/docs/prune-simulator/) for more ex
 
 Note: Value 0 means no backups are retained for that interval; value -1 means infinite backups can be retained for that interval, equivalent to setting a very large value
 - Type: `int`
+
+Each interval counts **the newest backup inside it**, and a backup already kept by an earlier interval does not take up a slot in a later one.
+
+`week` uses **ISO weeks** (`2026-W01`), so the same week across a new year counts as one week.
+
+To see which backups the current settings would delete without deleting anything, run `/qb prune dryrun`.
 
 ---
 
