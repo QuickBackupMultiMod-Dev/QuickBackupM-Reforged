@@ -135,9 +135,6 @@ subprojects {
         options.release = 25
     }
 
-    // -- Access widener: merge common + platform before compiling -------------
-    apply from: rootProject.file("gradle/accesswidener.gradle")
-
     // -- build/libs housekeeping ----------------------------------------------
     apply from: rootProject.file("gradle/libs-output.gradle")
 }

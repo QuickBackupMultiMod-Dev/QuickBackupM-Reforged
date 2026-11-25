@@ -50,6 +50,12 @@ jobs:
           else
             echo "harness_project=" >> "$GITHUB_OUTPUT"
           fi
+          # Same idea for the mod's own unit tests: they live in common/src/test on newer branches only.
+          if [ -d common/src/test/java ] && [ -n "$MOD_ID" ]; then
+            echo "common_project=${MOD_ID}-common" >> "$GITHUB_OUTPUT"
+          else
+            echo "common_project=" >> "$GITHUB_OUTPUT"
+          fi
           echo "Resolved ci_java_version=${JAVA:-21} ci_build_task=${TASK:-remapJar} harness=${MOD_ID:-none}"
 
       - name: Set up JDK
@@ -65,12 +71,19 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             ./.gradle/loom-cache
-          key: ${{ runner.os }}-gradle-${{ inputs.ref || github.ref_name }}-${{ hashFiles('*.gradle', 'gradle.properties', '**/*.accesswidener') }}
+          key: ${{ runner.os }}-gradle-${{ inputs.ref || github.ref_name }}-${{ hashFiles('*.gradle', 'gradle.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
       - name: Grant execute permission
         run: chmod +x gradlew
+
+      - name: Unit tests (mod logic)
+        # The retention policy and the relaunch command line: pure logic, no game needed. These are the
+        # regression tests for #60 (PBS prune) and #61 (restart), and they fail in seconds rather than in
+        # a 40-minute functional matrix.
+        run: ./gradlew :${{ steps.ci_meta.outputs.common_project }}:test --no-daemon
+        if: ${{ steps.ci_meta.outputs.common_project != '' }}
 
       - name: Fast unit tests
         if: ${{ steps.ci_meta.outputs.harness_project != '' }}
