@@ -8,6 +8,7 @@ import io.github.skydynamic.quickbackupmulti.utils.permission.PermissionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 
 import java.util.List;
 
@@ -15,7 +16,7 @@ import static io.github.skydynamic.quickbackupmulti.translate.Translate.tr;
 
 public class PruneCommand {
     public static final LiteralArgumentBuilder<CommandSourceStack> cmd = Commands.literal("prune")
-        .requires(it -> PermissionManager.hasPermission(it, 2, PermissionType.HELPER))
+        .requires(it -> PermissionManager.hasPermission(it, Permissions.COMMANDS_GAMEMASTER, PermissionType.HELPER))
         .executes(it -> prune(it.getSource(), false))
         .then(Commands.literal("dryrun")
             .executes(it -> prune(it.getSource(), true))

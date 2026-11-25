@@ -73,7 +73,10 @@ public final class ProcessRestart {
             return List.of();
         }
 
-        if (info.command() != null && !info.command().isBlank()) {
+        // A command without arguments is not a server launch: some JVMs (and some containers) expose the
+        // executable but refuse the argv, and `java` on its own would start nothing. Fall through to the
+        // reconstruction below instead of "successfully" launching a JVM that prints its usage and dies.
+        if (info.command() != null && !info.command().isBlank() && !info.arguments().isEmpty()) {
             List<String> cmd = new ArrayList<>();
             cmd.add(info.command());
             cmd.addAll(info.arguments() == null ? List.of() : info.arguments());
