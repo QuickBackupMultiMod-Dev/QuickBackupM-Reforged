@@ -70,6 +70,22 @@ class ProcessRestartTest {
     }
 
     @Test
+    void ignoresACommandWhoseArgumentsWereHidden() {
+        // Some JVMs expose the executable but not the argv; "java" on its own starts nothing, so the
+        // reconstruction from java.home has to take over instead of "succeeding".
+        List<String> command = ProcessRestart.buildCommand(info(
+            "/usr/lib/jvm/java-21/bin/java",
+            List.of(),
+            "/usr/lib/jvm/java-21",
+            null,
+            "server.jar nogui",
+            "Linux"
+        ));
+
+        assertEquals(List.of("/usr/lib/jvm/java-21/bin/java", "-jar", "server.jar", "nogui"), command);
+    }
+
+    @Test
     void reportsAnEmptyCommandWhenNothingIsKnown() {
         assertTrue(ProcessRestart.buildCommand(info(null, List.of(), null, null, null, "Linux")).isEmpty());
         assertTrue(ProcessRestart.buildCommand(info(null, List.of(), "/opt/java", null, "   ", "Linux")).isEmpty());
