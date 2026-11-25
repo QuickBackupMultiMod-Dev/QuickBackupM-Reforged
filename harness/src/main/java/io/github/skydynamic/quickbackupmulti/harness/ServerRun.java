@@ -198,7 +198,14 @@ public final class ServerRun implements AutoCloseable {
     public void makeBackup(String name, Duration timeout) throws InterruptedException {
         int before = server().occurrences("Make Backup thread close");
         server().send("qb make \"" + name + "\"");
-        server().awaitOccurrences("Make Backup thread close", before + 1, timeout);
+        // After a self-restart the handle still refers to the process that relaunched and exited, while
+        // the replacement inherited its console — the log keeps growing, so which wait applies depends on
+        // whether this handle's own process is still alive.
+        if (server().isAlive()) {
+            server().awaitOccurrences("Make Backup thread close", before + 1, timeout);
+        } else {
+            server().awaitOccurrencesAfterExit("Make Backup thread close", before + 1, timeout);
+        }
     }
 
     private static final Duration RESTORE_TIMEOUT = Duration.ofMinutes(5);
@@ -224,7 +231,13 @@ public final class ServerRun implements AutoCloseable {
         int before = server().occurrences("Make a temp backup success.");
         server().send("qb restore \"" + target + "\"");
         server().send("qb confirm");
-        server().awaitOccurrences("Make a temp backup success.", before + 1, RESTORE_TIMEOUT);
+        // A scenario that restores twice relaunches in between, so by the second restore this handle's
+        // process has already exited while its replacement keeps writing to the inherited console.
+        if (server().isAlive()) {
+            server().awaitOccurrences("Make a temp backup success.", before + 1, RESTORE_TIMEOUT);
+        } else {
+            server().awaitOccurrencesAfterExit("Make a temp backup success.", before + 1, RESTORE_TIMEOUT);
+        }
     }
 
     /**
