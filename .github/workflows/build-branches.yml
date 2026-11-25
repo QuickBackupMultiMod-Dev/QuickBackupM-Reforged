@@ -59,7 +59,7 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             ./.gradle/loom-cache
-          key: ${{ runner.os }}-gradle-${{ matrix.branch }}-${{ hashFiles('*.gradle', 'gradle.properties', '**/*.accesswidener') }}
+          key: ${{ runner.os }}-gradle-${{ matrix.branch }}-${{ hashFiles('*.gradle', 'gradle.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-${{ matrix.branch }}-
             ${{ runner.os }}-gradle-
