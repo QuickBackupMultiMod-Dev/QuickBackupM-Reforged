@@ -1,11 +1,9 @@
 package io.github.skydynamic.quickbackupmulti.neoforge.events;
 
 import io.github.skydynamic.quickbackupmulti.QuickbackupmultiReforged;
-import io.github.skydynamic.quickbackupmulti.config.ModConfig;
-import io.github.skydynamic.quickbackupmulti.neoforge.QuickbackupmultiReforgedNeoForge;
+import io.github.skydynamic.quickbackupmulti.ServerManager;
 import io.github.skydynamic.quickbackupmulti.event.OnServerStoppedHandler;
-import io.github.skydynamic.quickbackupmulti.neoforge.ServerManagerNeoforge;
-import io.github.skydynamic.quickbackupmulti.utils.BackupManager;
+import io.github.skydynamic.quickbackupmulti.neoforge.QuickbackupmultiReforgedNeoForge;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -24,7 +22,7 @@ public class NeoForgeEvents {
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        QuickbackupmultiReforged.setServerManager(new ServerManagerNeoforge(event.getServer()));
+        QuickbackupmultiReforged.setServerManager(new ServerManager(event.getServer()));
 
         // suck ModifiableBiomeInfo & ModifiableStructureInfo
         if (QuickbackupmultiReforged.getModContainer().isRestoringBackup()) {
@@ -35,14 +33,10 @@ public class NeoForgeEvents {
     @OnlyIn(Dist.DEDICATED_SERVER)
     @SubscribeEvent
     public static void onDedicatedServerStopped(ServerStoppedEvent event) {
-        if (QuickbackupmultiReforged.getModContainer().isRestoringBackup()) {
-            if (QuickbackupmultiReforged.getModConfig().getAutoRestartMode() == ModConfig.AutoRestartMode.DEFAULT) {
-                BackupManager.restoreBackup(QuickbackupmultiReforged.getModContainer().getCurrentSelectionBackup());
-                QuickbackupmultiReforged.getServerManager().startServer();
-            } else {
-                OnServerStoppedHandler.handle();
-            }
-        }
+        // One restore path for both loaders. This used to special-case DEFAULT because that mode
+        // relaunched inside the same JVM on Fabric but launched a detached one here, so the shared
+        // handler's restart branch did not apply. Every mode now restarts the same way.
+        OnServerStoppedHandler.handle();
     }
 
     @OnlyIn(Dist.CLIENT)

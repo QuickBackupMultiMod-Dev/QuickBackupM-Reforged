@@ -12,8 +12,8 @@ import java.util.Map;
  * <p>Pre-writing it is what makes the run deterministic. Left alone the mod would default to
  * {@code lang=zh_cn} (so every user-facing string an assertion might match changes),
  * {@code checkUpdate=true} (a network call to Modrinth on every boot, and a source of unrelated
- * failures when it is unreachable) and {@code autoRestartMode=DEFAULT} (which on NeoForge spawns a
- * detached JVM the harness cannot observe).
+ * failures when it is unreachable) and {@code autoRestartMode=DEFAULT} (which relaunches the server into
+ * a new process that a naive handle cannot follow).
  *
  * <p>The field names here mirror {@code ModConfig.ConfigStorage} exactly. Gson leaves absent fields at
  * their defaults, so only what the harness actually cares about is written — but a rename in the mod
@@ -42,8 +42,8 @@ public final class ModConfigFile {
         c.root.put("lang", "en_us");
         // A boot must not depend on Modrinth being reachable.
         c.root.put("checkUpdate", false);
-        // DEFAULT restarts in-process on Fabric but launches a *detached* JVM on NeoForge and exits, so
-        // the harness would lose track of the server. Scenarios that test restart opt in explicitly.
+        // DEFAULT and SELF_RESTART both relaunch into a new process and exit, handing the console to the
+        // replacement. Only the scenarios that test restart opt in; see ServerRun#restoreAndAwaitRelaunch.
         c.root.put("autoRestartMode", "DISABLE");
         c.root.put("clientAutoReJoinWorld", false);
         c.root.put("storagePath", "./QuickBackupMulti");

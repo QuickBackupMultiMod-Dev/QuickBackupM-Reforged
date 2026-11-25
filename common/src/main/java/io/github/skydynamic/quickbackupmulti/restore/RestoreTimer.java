@@ -9,6 +9,8 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.List;
 import java.util.TimerTask;
 
+import static io.github.skydynamic.quickbackupmulti.translate.Translate.tr;
+
 public class RestoreTimer extends TimerTask {
     private final ModEnvType env;
     private final List<ServerPlayer> players;
@@ -24,7 +26,7 @@ public class RestoreTimer extends TimerTask {
         QuickbackupmultiReforged.getModContainer().setRestoringBackup(true);
         if (env == ModEnvType.SERVER) {
             for (ServerPlayer player : players) {
-                player.connection.disconnect(Component.literal("Server restore backup"));
+                player.connection.disconnect(Component.nullToEmpty(tr("quickbackupmulti.restore.kick")));
             }
             QuickbackupmultiReforged.getServerManager().stopServer();
         } else {
