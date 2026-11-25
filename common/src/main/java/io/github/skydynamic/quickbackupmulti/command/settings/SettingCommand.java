@@ -11,5 +11,7 @@ public class SettingCommand {
         .requires(it -> PermissionManager.hasPermission(it, 4, PermissionType.ADMIN))
         .then(LangSettingCommand.cmd)
         .then(RestartModeSettingCommand.cmd)
+        .then(RestoreCountdownSettingCommand.cmd)
+        .then(BackupNotifySettingCommand.cmd)
         .then(AutoReJoinSettingCommand.cmd);
 }
