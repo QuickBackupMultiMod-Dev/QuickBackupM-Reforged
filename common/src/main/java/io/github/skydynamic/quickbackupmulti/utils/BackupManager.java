@@ -5,11 +5,14 @@ import io.github.skydynamic.increment.storage.lib.database.DatabaseTables;
 import io.github.skydynamic.increment.storage.lib.database.StorageInfo;
 import io.github.skydynamic.quickbackupmulti.DatabaseCache;
 import io.github.skydynamic.quickbackupmulti.QuickbackupmultiReforged;
+import io.github.skydynamic.quickbackupmulti.config.PbsConfig;
+import io.github.skydynamic.quickbackupmulti.config.PruneScheduleConfig;
 import io.github.skydynamic.quickbackupmulti.database.DatabaseManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.NameFileFilter;
@@ -21,6 +24,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -149,14 +154,27 @@ public class BackupManager {
     }
 
     public static void makeBackup(CommandSourceStack commandSource, String name, String desc) {
+        makeBackup(commandSource, name, desc, false, "quickbackupmulti.make.start");
+    }
+
+    /**
+     * Makes a backup, optionally announcing it in chat.
+     *
+     * @param notifyPlayers also send the start/finish/failure messages to every online player, which is
+     *                      what a scheduled backup needs: it runs while people are playing and a lag spike
+     *                      with no explanation is indistinguishable from a server problem
+     * @param startMessageKey the message used while the backup runs, so a scheduled one can say so
+     */
+    public static void makeBackup(CommandSourceStack commandSource, String name, String desc,
+                                  boolean notifyPlayers, String startMessageKey) {
         if (QuickbackupmultiReforged.getDatabase().storageExists(name)) {
             commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail_exists")));
             return;
         }
         long startTime = System.currentTimeMillis();
+        MinecraftServer server = commandSource.getServer();
         try {
-            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.start")));
-            MinecraftServer server = commandSource.getServer();
+            report(server, commandSource, notifyPlayers, tr(startMessageKey));
             server.executeBlocking(() -> {
                 server.saveEverything(true, true, true);
                 for (ServerLevel serverLevel : server.getAllLevels()) {
@@ -175,7 +193,7 @@ public class BackupManager {
 
             long endTime = System.currentTimeMillis();
             double intervalTime = (endTime - startTime) / 1000.0;
-            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.success", intervalTime)));
+            report(server, commandSource, notifyPlayers, tr("quickbackupmulti.make.success", intervalTime));
 
             server.executeBlocking(() -> {
                 for (ServerLevel serverLevel : server.getAllLevels()) {
@@ -185,7 +203,7 @@ public class BackupManager {
             });
         } catch (Exception e) {
             logger.error("Make Backup Failed", e);
-            commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.make.fail",  e.toString())));
+            report(server, commandSource, notifyPlayers, tr("quickbackupmulti.make.fail",  e.toString()));
         } finally {
             try {
                 makeFullBackup();
@@ -193,6 +211,26 @@ public class BackupManager {
                 logger.error("Make full backup failed", e);
             }
         }
+    }
+
+    /**
+     * Reports a backup milestone to the command source, and to every online player when asked.
+     *
+     * <p>The broadcast is queued onto the server thread rather than iterating connections from whatever
+     * thread the schedule fired on.
+     */
+    private static void report(MinecraftServer server, CommandSourceStack commandSource, boolean notifyPlayers,
+                               String message) {
+        Component component = Component.nullToEmpty(message);
+        commandSource.sendSystemMessage(component);
+        if (!notifyPlayers) {
+            return;
+        }
+        server.execute(() -> {
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                player.sendSystemMessage(component);
+            }
+        });
     }
 
     public static void makeTempBackup() {
@@ -209,6 +247,65 @@ public class BackupManager {
             return true;
         } else {
             return false;
+        }
+    }
+
+    /**
+     * Applies the PBS retention config to the scheduled backups.
+     *
+     * <p>Shared by the prune schedule and {@code /qb prune} so that "what would be deleted" and "what is
+     * deleted" can never disagree — which is what made the prune behaviour in issue #60 impossible to
+     * reproduce without waiting for a cron.
+     *
+     * @param dryRun report only; nothing is deleted and the database is left untouched
+     * @return the backups that were (or would be) deleted, newest first
+     */
+    public static List<StorageInfo> pruneRegularBackups(CommandSourceStack commandSource, boolean dryRun) {
+        PruneScheduleConfig scheduleConfig = QuickbackupmultiReforged.getModConfig().getPruneScheduleConfig();
+        PbsConfig pbsConfig = scheduleConfig.getRegularBackup();
+        PbsPrunePolicy.Result result = PbsPrunePolicy.selectExpired(
+            pbsConfig,
+            getBackupsList(),
+            pruneZone(scheduleConfig.getTimezoneOverride()),
+            System.currentTimeMillis()
+        );
+
+        if (result.droppedByMaxAmount() > 0) {
+            // The options above already chose what to keep; dropping the older part of that choice is
+            // almost never what a "monthly 6, yearly 2" config wants, so say so instead of silently
+            // ignoring the retention settings.
+            logger.warn(
+                "Prune: maxAmount={} dropped {} backup(s) the hourly/daily/weekly/monthly/yearly options had " +
+                    "selected. Set maxAmount to 0 to let the retention options decide by themselves.",
+                pbsConfig.getMaxAmount(), result.droppedByMaxAmount());
+        }
+
+        if (!dryRun) {
+            for (StorageInfo backup : result.expired()) {
+                deleteBackup(commandSource, backup.getName());
+            }
+            if (!result.expired().isEmpty() && QuickbackupmultiReforged.getModConfig().isCacheDatabase()) {
+                DatabaseCache.updateStorageInfoCaches();
+            }
+        }
+        return result.expired();
+    }
+
+    /**
+     * The zone the retention buckets are computed in.
+     *
+     * <p>{@code timezoneOverride} is user input from the config file; an invalid id used to throw out of
+     * the scheduled prune job, which Quartz then reported as a failed run.
+     */
+    private static ZoneId pruneZone(String timezoneOverride) {
+        if (timezoneOverride == null || timezoneOverride.isBlank()) {
+            return ZoneId.systemDefault();
+        }
+        try {
+            return ZoneId.of(timezoneOverride);
+        } catch (DateTimeException e) {
+            logger.warn("Invalid prune timezone '{}', falling back to the server default", timezoneOverride);
+            return ZoneId.systemDefault();
         }
     }
 

@@ -13,6 +13,8 @@
   "ignoredFolders": [],
   "lang": "zh_cn",
   "autoRestartMode": "DEFAULT",
+  "relaunchCommand": "",
+  "restoreCountdownSeconds": 10,
   "clientAutoReJoinWorld": true,
   "storagePath": "./QuickBackupMulti",
   "cacheDatabase": false,
@@ -44,9 +46,42 @@
 - 默认值：`zh_cn`
 
 #### **autoRestartMode**
-自动重启模式 (仅服务端, 客户端无效)
+回档结束后服务器的处理方式 (仅服务端, 客户端无效)
+
+| 值 | 行为 |
+| --- | --- |
+| `DISABLE` | 不重启, 回档完成后进程直接退出 |
+| `DEFAULT` | 与 `SELF_RESTART` 完全相同 (保留这个名字只为兼容旧配置) |
+| `SELF_RESTART` | 模组自己用启动时的命令行拉起一个新进程, 然后退出当前进程; 不需要面板、包装脚本或任何外部守护程序 |
+| `MCSM` | 以退出码 `1` 退出, 由外部程序 (MCSManager 等) 负责重启 |
+
 - 类型：`string`
 - 默认值：`DEFAULT`
+
+> [!IMPORTANT]
+> `DEFAULT` / `SELF_RESTART` 会自行启动新进程. 如果你的启动器或面板**本身就配置了"进程退出后自动重启"**, 请改用 `MCSM`, 否则会出现两个服务器进程同时运行.
+>
+> "原地重启"已被移除: 旧实现会在同一个 `MinecraftServer` 实例上再次调用 `runServer()`, 而它的世界生成注册表在上次启动时已被修改过, 在 Minecraft 26.x 上会直接抛出 `IllegalStateException: Dimensions in this dynamic registries instance have already been modified` (见 [#61](https://github.com/QuickBackupMultiMod-Dev/QuickBackupM-Reforged/issues/61)); 并且模组的加载器初始化 (Fabric 的 `Knot`、NeoForge 的 `FMLLoader`) 每个 JVM 只会执行一次, 本来也无法原地重来.
+
+> 兼容：旧版本写下的 `NONE` 等别名会被读取为 `DISABLE`.
+
+#### **relaunchCommand**
+`SELF_RESTART` / `DEFAULT` 用来启动新进程的命令行. 留空表示从当前进程自动推导 (绝大多数情况下就应该留空).
+
+只有当推导出来的命令不正确时才需要手动填写, 例如启动被包装脚本、容器 entrypoint 或面板改写过. 字符串按空格分词, 可用双引号括起带空格的路径.
+
+```json
+"relaunchCommand": "java -Xmx4G -jar server.jar nogui"
+```
+- 类型：`string`
+- 默认值：`""`
+
+#### **restoreCountdownSeconds**
+执行 `/qb confirm` 后的回档倒计时秒数 (仅服务端)
+
+设为 `0` 表示立即回档, 没有取消窗口; 超过 3600 的值会被截断
+- 类型：`int`
+- 默认值：`10`
 
 #### **clientAutoReJoinWorld**
 是否在回档完成后自动加入世界 (仅客户端, 服务端无效)
@@ -85,7 +120,8 @@ QuickBackupMulti-Reforge 储存各种数据文件所用的根目录
   "resetTimerOnBackup": true,
   "requireOnlinePlayers": false,
   "requireOnlinePlayersIgnoreCarpetFakePlayer": true,
-  "requireOnlinePlayersBlacklist": []
+  "requireOnlinePlayersBlacklist": [],
+  "notifyPlayers": false
 }
 ```
 
@@ -118,6 +154,13 @@ QuickBackupMulti-Reforge 储存各种数据文件所用的根目录
     "Steve"    // 匹配 "Steve" 这个玩家名
 ]
 ```
+
+#### **notifyPlayers**
+是否把定时备份的开始/完成/失败消息广播给所有在线玩家
+
+定时备份是在玩家游戏过程中进行的, 期间可能出现短暂卡顿; 开启后玩家会知道这是备份造成的
+- 类型：`bool`
+- 默认值：`false`
 
 ---
 
@@ -161,7 +204,9 @@ regularBackup 详细描述了存档的保留策略
 3. 收集上述两次筛选过程中, 找到的哪些需要删除的备份, 并逐个进行删除
 
 #### **maxAmount**
-定义要保留的最大备份数量，例如 10 表示最多保留最新的 10 个备份
+定义要保留的最大备份数量, 例如 10 表示最多保留最新的 10 个备份
+
+这个上限作用在上面的 PBS 策略**之后**: 如果 `last`~`year` 一共选出了 30 个备份, 而 `maxAmount` 是 10, 那么只有最新的 10 个会被保留, 另外 20 个依旧会被删除, 同时在日志里打印一条警告. 因此使用 `month` / `year` 这类长期保留选项时, 应把它设为 0
 
 设置为 0 表示无限制
 - 类型：`int`
@@ -170,7 +215,7 @@ regularBackup 详细描述了存档的保留策略
 #### **maxLifeTime**
 定义所有备份的最大保存时长。超出给定时长的备份将被清理
 
-设置为 0s 表示无时长限制
+设置为 0 表示无时长限制 (`0s`, `0m` 等任何解析为 0 的时长均如此)
 - 类型：[`Duration`]()
 
 ### **last, hour, day, week, month, year**
@@ -182,6 +227,12 @@ regularBackup 详细描述了存档的保留策略
 
 注意：值 0 表示不为该区间保留任何备份；值 -1 表示该区间可以保留无限多的备份，与设为极大值等价
 - 类型：`int`
+
+每个区间以**该区间内最新的那个备份**作为代表来计数, 并且已经被前面区间保留的备份不会重复占用后面区间的名额.
+
+`week` 按 **ISO 周** (`2026-W01`) 计算, 落在跨年边界上的同一周算作同一周.
+
+想先看看当前配置会删掉哪些备份、而不真的删除, 可以执行 `/qb prune dryrun`.
 
 ---
 
