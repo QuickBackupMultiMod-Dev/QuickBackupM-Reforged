@@ -119,9 +119,6 @@ subprojects {
     group = project.maven_group
     archivesBaseName = project.archives_name + "-mc" + project.minecraft_version + "-$project.name".replace("${mod_id}-", "")
 
-    // Access widener: merge common + platform before compiling (loom-agnostic).
-    apply from: rootProject.file("gradle/accesswidener.gradle")
-
     java {
         withSourcesJar()
 
