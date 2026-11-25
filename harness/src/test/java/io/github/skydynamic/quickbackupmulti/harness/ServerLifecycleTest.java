@@ -185,12 +185,15 @@ class ServerLifecycleTest extends FunctionalTestBase {
 
             try (ServerRun run = ServerRun.provision(config, mc, loader, "self-restart", modConfig)) {
                 run.boot();
-                run.makeBackup("pre-relaunch");
 
-                Path levelDat = run.worldDir().resolve("level.dat");
-                assertTrue(Files.exists(levelDat), "No level.dat to modify");
-                long originalSize = Files.size(levelDat);
-                Files.write(levelDat, new byte[]{9, 9, 9}, StandardOpenOption.APPEND);
+                // A file that the backup will contain and that the server never touches. level.dat cannot
+                // serve here: the restored world is immediately booted, and every boot rewrites level.dat,
+                // so its content says nothing about whether the rollback happened.
+                Path marker = run.worldDir().resolve("qbm-rollback-marker.txt");
+                Files.writeString(marker, "state-at-backup-time");
+
+                run.makeBackup("pre-relaunch");
+                Files.writeString(marker, "changed-after-the-backup");
 
                 long parentPid = run.server().pid();
                 long replacementPid = run.restoreAndAwaitRelaunch("pre-relaunch");
@@ -199,8 +202,8 @@ class ServerLifecycleTest extends FunctionalTestBase {
                     "The server must come back as a new process, not by reusing the old one");
                 assertEquals(1, run.server().occurrences("QBM: relaunching server"),
                     "exactly one relaunch should have been logged");
-                assertEquals(originalSize, Files.size(levelDat),
-                    "The restore did not revert level.dat, so the rollback never ran");
+                assertEquals("state-at-backup-time", Files.readString(marker),
+                    "The restore did not revert the world directory, so the rollback never ran");
 
                 // The replacement has to be a real server, not just a process that printed Done(): it must
                 // answer commands, and it must be able to open the backup database the old process closed
