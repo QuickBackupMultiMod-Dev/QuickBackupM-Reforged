@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -24,6 +25,12 @@ public final class ServerRun implements AutoCloseable {
     private static final Pattern DONE = Pattern.compile("Done \\([0-9.]+s\\)! For help");
     /** Generous: a cold first boot generates the world and Mixin has to apply everything. */
     private static final Duration BOOT_TIMEOUT = Duration.ofMinutes(8);
+    /**
+     * Logged by {@code ProcessRestart} right before the old process exits, carrying the replacement's
+     * pid — the only way to observe the new server from the outside.
+     */
+    private static final String RELAUNCH_MARKER = "QBM: relaunching server";
+    private static final Pattern RELAUNCH_PID = Pattern.compile("QBM: relaunching server \\(pid=(\\d+)\\)");
 
     private final HarnessConfig config;
     private final String mcVersion;
@@ -33,6 +40,8 @@ public final class ServerRun implements AutoCloseable {
     private final List<String> launchCommand;
     private GameProcess process;
     private int bootCount;
+    /** Replacements spawned by a self-restart, killed on close so a failed scenario cannot leak a JVM. */
+    private final List<Long> relaunchedPids = new ArrayList<>();
 
     private ServerRun(HarnessConfig config, String mcVersion, String loader, Path runDir, Path logDir,
                       List<String> launchCommand) {
@@ -202,7 +211,7 @@ public final class ServerRun implements AutoCloseable {
      * {@code OnServerStoppedHandler} once that countdown fires and the server halts, which is also where
      * {@code "Make a temp backup success."} is logged — <em>before</em> the reconstruct, not after. So
      * this only proves the restore is under way, not that it finished; use
-     * {@link #restoreAndAwaitExit} or {@link #restoreAndAwaitRestart} for that. stdin is a single ordered
+     * {@link #restoreAndAwaitExit} or {@link #restoreAndAwaitRelaunch} for that. stdin is a single ordered
      * stream drained by one console thread, so sending {@code confirm} immediately after {@code restore}
      * is safe — there is no race to wait out between the two commands themselves.
      *
@@ -228,14 +237,67 @@ public final class ServerRun implements AutoCloseable {
     }
 
     /**
-     * Restores a backup and waits for the in-process restart to finish booting — the completion signal
-     * on Fabric when {@code autoRestartMode} is {@code DEFAULT}, which relaunches inside the same JVM
-     * rather than exiting.
+     * Restores a backup and waits for the replacement server to finish booting.
+     *
+     * <p>Every {@code autoRestartMode} that restarts now does it by launching a new process and exiting,
+     * so this replaces the old "wait for a second {@code Done (…)} from the same JVM" wait. The
+     * replacement inherits this process's console, so its boot banner arrives on the same stream, but
+     * the <em>handle</em> still refers to the process that exited — hence the
+     * {@code awaitOccurrencesAfterExit} waits and the pid-based shutdown at the end.
+     *
+     * @return the pid of the replacement
      */
-    public void restoreAndAwaitRestart(String target) throws InterruptedException {
+    public long restoreAndAwaitRelaunch(String target) throws InterruptedException {
+        int relaunchesBefore = server().occurrences(RELAUNCH_MARKER);
         int bootsBefore = server().linesMatching(DONE).size();
+
         restore(target);
-        server().awaitOccurrences(DONE, bootsBefore + 1, BOOT_TIMEOUT);
+
+        // The old process is supposed to exit here; that is the restart working, not a failure.
+        int exit = server().awaitExit(RESTORE_TIMEOUT);
+        if (exit != 0) {
+            throw new HarnessException(
+                "The server exited with code " + exit + " instead of relaunching itself");
+        }
+        server().awaitOccurrencesAfterExit(RELAUNCH_MARKER, relaunchesBefore + 1, RESTORE_TIMEOUT);
+
+        long replacementPid = lastRelaunchPid();
+        relaunchedPids.add(replacementPid);
+        server().awaitOccurrencesAfterExit(DONE, bootsBefore + 1, BOOT_TIMEOUT);
+        return replacementPid;
+    }
+
+    /** The pid carried by the most recent relaunch marker. */
+    private long lastRelaunchPid() {
+        List<String> matches = server().linesMatching(RELAUNCH_PID);
+        if (matches.isEmpty()) {
+            throw new HarnessException("A relaunch was reported but no pid could be parsed from the log");
+        }
+        Matcher matcher = RELAUNCH_PID.matcher(matches.get(matches.size() - 1));
+        if (!matcher.find()) {
+            throw new HarnessException("Could not read a pid out of: " + matches.get(matches.size() - 1));
+        }
+        return Long.parseLong(matcher.group(1));
+    }
+
+    /**
+     * Shuts down the replacement a self-restart left running.
+     *
+     * <p>{@code stop} travels down the same stdin the replacement inherited; its exit is observed
+     * through the OS because this run's {@link GameProcess} handle is the process that already exited.
+     */
+    public void stopRelaunched(long replacementPid) throws InterruptedException {
+        try {
+            server().send("stop");
+        } catch (HarnessException e) {
+            // The console may already be gone; the wait below reports the real state.
+        }
+        if (!GameProcess.awaitProcessGone(replacementPid, Duration.ofMinutes(2))) {
+            ProcessHandle.of(replacementPid).ifPresent(ProcessHandle::destroyForcibly);
+            throw new HarnessException("The relaunched server (pid=" + replacementPid
+                + ") ignored 'stop' and was killed" + System.lineSeparator()
+                + "--- last 40 lines ---" + System.lineSeparator() + server().logTail(40));
+        }
     }
 
     /** The running server, or a clear failure if a scenario forgot to boot it. */
@@ -284,6 +346,10 @@ public final class ServerRun implements AutoCloseable {
     public void close() {
         if (process != null) {
             process.close();
+        }
+        // A self-restarted server outlives the handle above, so kill whatever it left behind.
+        for (long pid : relaunchedPids) {
+            ProcessHandle.of(pid).filter(ProcessHandle::isAlive).ifPresent(ProcessHandle::destroyForcibly);
         }
         if (config.keepRunDirs()) {
             return;

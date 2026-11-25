@@ -105,14 +105,18 @@ public class RestoreCommand {
                 commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.abort_hint")));
                 MinecraftServer server = commandSource.getServer();
                 List<ServerPlayer> players = new ArrayList<>(server.getPlayerList().getPlayers());
+                int countdownSeconds = QuickbackupmultiReforged.getModConfig().getRestoreCountdownSeconds();
                 for (ServerPlayer player : players) {
-                    player.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.restore.countdown.intro", executePlayerName)));
+                    player.sendSystemMessage(Component.nullToEmpty(
+                        tr("quickbackupmulti.restore.countdown.intro", executePlayerName, countdownSeconds)));
                 }
                 String slot = (String) restoreDataMap.get("QBM").get("Slot");
                 QuickbackupmultiReforged.getModContainer().setCurrentSelectionBackup(slot);
                 Timer timer = (Timer) restoreDataMap.get("QBM").get("Timer");
                 ScheduledExecutorService countdown = (ScheduledExecutorService) restoreDataMap.get("QBM").get("Countdown");
-                AtomicInteger countDown = new AtomicInteger(11);
+                // The ticker fires once per second and the rollback is scheduled independently, so a
+                // countdown of 0 simply never prints a "N seconds left" line and rolls back at once.
+                AtomicInteger countDown = new AtomicInteger(countdownSeconds + 1);
                 countdown.scheduleAtFixedRate(() -> {
                     int remaining = countDown.decrementAndGet();
                     if (remaining >= 1) {
@@ -127,7 +131,8 @@ public class RestoreCommand {
                         countdown.shutdown();
                     }
                 }, 0, 1, TimeUnit.SECONDS);
-                timer.schedule(new RestoreTimer(QuickbackupmultiReforged.getModContainer().getEnvType(), players), 10000);
+                timer.schedule(new RestoreTimer(QuickbackupmultiReforged.getModContainer().getEnvType(), players),
+                    countdownSeconds * 1000L);
             } else {
                 commandSource.sendSystemMessage(Component.nullToEmpty(tr("quickbackupmulti.confirm_restore.nothing_to_confirm")));
             }

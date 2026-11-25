@@ -43,7 +43,13 @@ public class DefaultScheduleBackupRunnable implements Runnable {
             return;
         }
 
-        BackupManager.makeBackup(QuickbackupmultiReforged.getServerManager().getCommandSource(), scheduleName, "");
+        BackupManager.makeBackup(
+            QuickbackupmultiReforged.getServerManager().getCommandSource(),
+            scheduleName,
+            "",
+            scheduleBackupConfig.isNotifyPlayers(),
+            "quickbackupmulti.make.start.schedule"
+        );
 
         if (QuickbackupmultiReforged.getModConfig().isCacheDatabase()) {
             DatabaseCache.updateStorageInfoCaches();
