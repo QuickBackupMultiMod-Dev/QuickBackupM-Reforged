@@ -5,8 +5,8 @@
   The last version that builds successfully is the support floor.
 
   Usage:
-    pwsh ./scripts/find-min-mc.ps1                # full build per version (slow, most accurate for compile+AW)
-    pwsh ./scripts/find-min-mc.ps1 -Fast          # compileJava + validateAccessWidener only (faster pre-screen)
+    pwsh ./scripts/find-min-mc.ps1                # full build per version (slow, most accurate)
+    pwsh ./scripts/find-min-mc.ps1 -Fast          # compileJava only (faster pre-screen)
 
   NOTE: each MC version needs matching loader / fabric-api / neoforge versions.
     fabric-api : https://modrinth.com/mod/fabric-api/versions
@@ -25,11 +25,11 @@ $matrix = @(
 # ---------------------------------------------------------------------------
 
 if ($Fast) {
+    # compileJava only: there is no access widener to validate any more (the restart no longer needs
+    # one), so the previous AW validation tasks no longer exist.
     $tasks = @(
         ":quickbakcupmulti_reforged-fabric:compileJava",
-        ":quickbakcupmulti_reforged-fabric:validateAccessWidener",
-        ":quickbakcupmulti_reforged-neoforge:compileJava",
-        ":quickbakcupmulti_reforged-neoforge:validateAccessWidener"
+        ":quickbakcupmulti_reforged-neoforge:compileJava"
     )
 } else {
     $tasks = @(

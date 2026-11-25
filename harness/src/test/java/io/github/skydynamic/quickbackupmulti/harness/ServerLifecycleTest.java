@@ -137,23 +137,16 @@ class ServerLifecycleTest extends FunctionalTestBase {
     @MethodSource("serverMatrix")
     void restoreDoesNotNestWorldDirectory(String mc, String loader) {
         runner.run(mc, loader, "server", "nested-world", () -> {
-            // DEFAULT restarts in-process on Fabric, which is exactly the path that re-opened the storage
-            // source and nested the directory. On NeoForge DEFAULT spawns a detached JVM instead, so the
-            // in-process restart cannot be observed and DISABLE plus an explicit reboot is used.
-            boolean inProcessRestart = "fabric".equals(loader);
-            ModConfigFile modConfig = ModConfigFile.deterministic()
-                .with("autoRestartMode", inProcessRestart ? "DEFAULT" : "DISABLE");
+            // Every restart mode now relaunches into a new process instead of re-entering runServer(),
+            // so both loaders exercise the same path — and it is that relaunch, not an in-place restart,
+            // that decides whether the level directory is passed where the saves directory belongs.
+            ModConfigFile modConfig = ModConfigFile.deterministic().with("autoRestartMode", "SELF_RESTART");
 
             try (ServerRun run = ServerRun.provision(config, mc, loader, "nested-world", modConfig)) {
                 run.boot();
                 run.makeBackup("nest-check");
 
-                if (inProcessRestart) {
-                    run.restoreAndAwaitRestart("nest-check");
-                } else {
-                    run.restoreAndAwaitExit("nest-check");
-                    run.boot();
-                }
+                long firstReplacement = run.restoreAndAwaitRelaunch("nest-check");
 
                 Path nested = run.worldDir().resolve("world");
                 assertFalse(Files.exists(nested),
@@ -162,17 +155,61 @@ class ServerLifecycleTest extends FunctionalTestBase {
 
                 // Restoring the same backup a second time is what made the old bug compound
                 // (world/world/world), so prove the second pass is clean too.
-                if (inProcessRestart) {
-                    run.restoreAndAwaitRestart("nest-check");
-                } else {
-                    run.restoreAndAwaitExit("nest-check");
-                    run.boot();
-                }
+                long secondReplacement = run.restoreAndAwaitRelaunch("nest-check");
 
                 assertFalse(Files.exists(nested),
                     "A second restore created a nested world directory at " + nested);
 
-                run.stop();
+                run.stopRelaunched(secondReplacement);
+                assertNotEquals(firstReplacement, secondReplacement,
+                    "each restore must relaunch into its own process");
+            }
+        });
+    }
+
+    /**
+     * The new {@code SELF_RESTART} mode, end to end: the mod must bring the server back on its own,
+     * without a panel or service manager, and the replacement has to be a fully working server.
+     *
+     * <p>This is also the regression test for issue #61. The old {@code DEFAULT} restart re-entered
+     * {@code MinecraftServer#runServer()} on the instance that had already run it, which on Minecraft
+     * 26.x dies with {@code IllegalStateException: Dimensions in this dynamic registries instance have
+     * already been modified}. Nothing about that path is left to exercise; what is left to prove is that
+     * the replacement boots, serves commands and can write to the backup database the old process owned.
+     */
+    @ParameterizedTest(name = "{0} / {1} — self restart relaunches a working server (#61)")
+    @MethodSource("serverMatrix")
+    void selfRestartRelaunchesAWorkingServer(String mc, String loader) {
+        runner.run(mc, loader, "server", "self-restart", () -> {
+            ModConfigFile modConfig = ModConfigFile.deterministic().with("autoRestartMode", "SELF_RESTART");
+
+            try (ServerRun run = ServerRun.provision(config, mc, loader, "self-restart", modConfig)) {
+                run.boot();
+                run.makeBackup("pre-relaunch");
+
+                Path levelDat = run.worldDir().resolve("level.dat");
+                assertTrue(Files.exists(levelDat), "No level.dat to modify");
+                long originalSize = Files.size(levelDat);
+                Files.write(levelDat, new byte[]{9, 9, 9}, StandardOpenOption.APPEND);
+
+                long parentPid = run.server().pid();
+                long replacementPid = run.restoreAndAwaitRelaunch("pre-relaunch");
+
+                assertNotEquals(parentPid, replacementPid,
+                    "The server must come back as a new process, not by reusing the old one");
+                assertEquals(1, run.server().occurrences("QBM: relaunching server"),
+                    "exactly one relaunch should have been logged");
+                assertEquals(originalSize, Files.size(levelDat),
+                    "The restore did not revert level.dat, so the rollback never ran");
+
+                // The replacement has to be a real server, not just a process that printed Done(): it must
+                // answer commands, and it must be able to open the backup database the old process closed
+                // (a leaked H2 lock would show up right here as a failed backup).
+                run.makeBackup("after-relaunch");
+                assertTrue(run.store().hasBackup("after-relaunch"),
+                    "The relaunched server could not write a backup, so the database was not handed over cleanly");
+
+                run.stopRelaunched(replacementPid);
             }
         });
     }
